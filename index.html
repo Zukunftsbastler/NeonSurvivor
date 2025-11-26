@@ -182,12 +182,21 @@
             { id: 7, name: "Transzendent",  color: "#ffffff", shadow: "#ffffff", mult: 25.0, weight: 5 }    // Weiß/Rainbow
         ];
 
+        // 1. Basis-Waffen (Clean Templates)
         const WEAPONS = {
-            blaster: { name: "Neo-Blaster", damage: 1.0, speed: 1.0, rate: 1.0, count: 0, spread: 0.1, life: 1.0, pierce: 1, color: '#fff' },
-            shotgun: { name: "Void Shotgun", damage: 0.6, speed: 0.8, rate: 2.2, count: 4, spread: 0.6, life: 0.4, pierce: 1, color: '#ff0' },
-            sniper:  { name: "Railgun",     damage: 4.0, speed: 2.5, rate: 3.0, count: 0, spread: 0.0, life: 1.5, pierce: 99, color: '#0ff' },
-            smg:     { name: "Uzi",         damage: 0.4, speed: 1.3, rate: 0.2, count: 0, spread: 0.4, life: 0.7, pierce: 1, color: '#f0f' },
-            nova:    { name: "Helix",       damage: 0.8, speed: 0.6, rate: 1.5, count: 2, spread: 0.2, life: 2.0, pierce: 3, color: '#0f0' }
+            blaster: { name: "Blaster", damage: 1.0, speed: 1.0, rate: 1.0, count: 0, spread: 0.1, life: 1.0, pierce: 1, color: '#fff' },
+            shotgun: { name: "Shotgun", damage: 0.6, speed: 0.8, rate: 2.2, count: 4, spread: 0.6, life: 0.4, pierce: 1, color: '#ff0' },
+            sniper:  { name: "Railgun", damage: 4.0, speed: 2.5, rate: 3.0, count: 0, spread: 0.0, life: 1.5, pierce: 99, color: '#0ff' },
+            smg:     { name: "Uzi",     damage: 0.4, speed: 1.3, rate: 0.2, count: 0, spread: 0.4, life: 0.7, pierce: 1, color: '#f0f' },
+            nova:    { name: "Helix",   damage: 0.8, speed: 0.6, rate: 1.5, count: 2, spread: 0.2, life: 2.0, pierce: 3, color: '#0f0' }
+        };
+
+        // 2. Mögliche Effekte & ihre Darstellung
+        const EFFECTS = {
+            freeze:    { name: "Cryo",    color: "#00ffff" }, // Überschreibt Waffenfarbe mit Cyan
+            poison:    { name: "Toxic",   color: "#00ff00" }, // Grün
+            explosive: { name: "Blast",   color: "#ffaa00" }, // Orange
+            vampire:   { name: "Vampiric",color: "#ff0000" }  // Rot
         };
 
         // Die reinen Upgrade-Typen (getrennt von Werten)
@@ -196,9 +205,13 @@
                 id: 'weapon_swap', 
                 name: 'Waffenschmied', 
                 baseVal: 0, 
-                format: (v) => `Rüste ${WEAPONS[v].name} aus`, 
+                // Format nimmt jetzt das fertige Waffen-Objekt "v" entgegen
+                format: (v) => {
+                    return `Rüste ${v.name} aus`; 
+                }, 
                 apply: (p, v) => { 
-                    p.currentWeapon = WEAPONS[v];
+                    // Wir setzen direkt das generierte Objekt als aktuelle Waffe
+                    p.currentWeapon = v;
                 } 
             },
             { 
@@ -294,10 +307,33 @@
                 }
 
                 if (type.id === 'weapon_swap') {
-                    // Wähle zufällige Waffe aus (außer der aktuellen)
-                    const keys = Object.keys(WEAPONS).filter(k => WEAPONS[k] !== player.currentWeapon);
+                    // A. Wähle zufälliges Basis-Modell
+                    const keys = Object.keys(WEAPONS);
                     const randomKey = keys[Math.floor(Math.random() * keys.length)];
-                    value = randomKey; 
+                    const template = WEAPONS[randomKey];
+
+                    // B. Erstelle eine KOPIE der Waffe (Wichtig! Sonst ändern wir das Original)
+                    // Wir nutzen Spread-Syntax {...} für eine flache Kopie
+                    let newWeapon = { ...template };
+
+                    // C. Würfle auf einen Effekt (z.B. 30% Chance, oder höher bei hoher Rarity?)
+                    // Trick: Wir nutzen die Rarity der Karte für die Chance!
+                    // Gewöhnlich: 0%, Selten: 20%, Legendär: 100%
+                    const effectChance = rarity.id * 0.15; // id 0 = 0%, id 4 = 60%
+                    
+                    if (Math.random() < effectChance) {
+                        const effectKeys = Object.keys(EFFECTS);
+                        const randomEffectKey = effectKeys[Math.floor(Math.random() * effectKeys.length)];
+                        const effectConfig = EFFECTS[randomEffectKey];
+
+                        // Waffe mutieren
+                        newWeapon.effect = randomEffectKey;
+                        newWeapon.name = `${effectConfig.name} ${newWeapon.name}`; // z.B. "Cryo Uzi"
+                        newWeapon.color = effectConfig.color; // Farbe anpassen
+                    }
+
+                    // D. Das fertige Objekt ist unser "Value"
+                    value = newWeapon;
                 }
 
                 return {
@@ -459,7 +495,8 @@
                         this.stats.projectileSpeed * w.speed, 
                         100 * w.life,   // Basis-Lebensdauer * Waffen-Faktor
                         w.pierce,
-                        w.color
+                        w.color,
+                        w.effect
                     ));
                 }
             }
@@ -527,6 +564,11 @@
                     baseHp = 15; baseSpeed = 3.5; baseColorHue = 60; baseSize = 8; // 60 = Gelb
                 }
 
+                // Status Effects
+                this.freezeTimer = 0;
+                this.poisonTimer = 0;
+                this.poisonTick = 0;
+
                 // 2. Werte skalieren
                 this.hp = baseHp * mult;
                 this.speed = baseSpeed * (1 + (mult - 1) * 0.1);
@@ -548,9 +590,33 @@
             }
 
             update(timeScale) {
+                // 1. Status Effekte verarbeiten
+                let currentSpeed = this.speed;
+                
+                // Freeze Logik: Wenn Timer aktiv, Speed halbieren
+                if (this.freezeTimer > 0) {
+                    this.freezeTimer -= timeScale;
+                    currentSpeed *= 0.4; // 60% Langsamer
+                    
+                    // Visualisierung: Blaues Overlay (simpel über Farbeffekt im Draw lösbar, aber hier reicht Speed)
+                    if (Math.random() < 0.1) createParticles(this.x, this.y, 1, '#00ffff');
+                }
+
+                // Poison Logik: Schaden über Zeit
+                if (this.poisonTimer > 0) {
+                    this.poisonTimer -= timeScale;
+                    this.poisonTick += timeScale;
+                    if (this.poisonTick > 20) { // Alle 20 Frames Schaden
+                        this.takeDamage(player.stats.damage * 0.2); // 20% DPS
+                        createPopup(this.x, this.y + 10, "tox", "#00ff00");
+                        this.poisonTick = 0;
+                    }
+                }
+
+                // 2. Bewegung (mit modifiziertem Speed)
                 const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                this.x += Math.cos(angle) * this.speed * timeScale;
-                this.y += Math.sin(angle) * this.speed * timeScale;
+                this.x += Math.cos(angle) * currentSpeed * timeScale;
+                this.y += Math.sin(angle) * currentSpeed * timeScale;
                 
                 const dist = Math.hypot(player.x - this.x, player.y - this.y);
                 if (dist < this.radius + player.radius) {
@@ -610,7 +676,7 @@
         }
 
         class Bullet {
-            constructor(x, y, angle, damage, speed, lifeTime, pierce, color) {
+            constructor(x, y, angle, damage, speed, lifeTime, pierce, color, effect) {
                 this.x = x; this.y = y;
                 this.vx = Math.cos(angle) * speed; 
                 this.vy = Math.sin(angle) * speed;
@@ -619,6 +685,7 @@
                 this.life = lifeTime; // Lebensdauer in Frames
                 this.pierce = pierce; // Durchschlagskraft
                 this.color = color;
+                this.effect = effect;
                 this.hitList = []; // Damit wir denselben Gegner nicht 2x pro Frame treffen
             }
             update(timeScale) {
@@ -846,6 +913,37 @@
                             // Verhindern, dass eine Kugel denselben Gegner mehrfach pro Frame trifft (bei Durchschlag wichtig)
                             if (!b.hitList.includes(e)) {
                                 e.takeDamage(b.damage);
+                                
+                                // --- STATUS EFFEKTE ANWENDEN ---
+                                if (b.effect === 'freeze') {
+                                    e.freezeTimer = 120; // 2 Sekunden Freeze (bei 60fps)
+                                }
+                                
+                                if (b.effect === 'poison') {
+                                    e.poisonTimer = 180; // 3 Sekunden Gift
+                                }
+                                
+                                if (b.effect === 'vampire') {
+                                    // 5% Chance auf 2 HP Heilung
+                                    if (Math.random() < 0.05) {
+                                        player.stats.hp = Math.min(player.stats.maxHp, player.stats.hp + 2);
+                                        createPopup(player.x, player.y, "+HP", "#ff0000");
+                                        updateHud();
+                                    }
+                                }
+
+                                if (b.effect === 'explosive') {
+                                    // Mini-Explosion erzeugen
+                                    createParticles(e.x, e.y, 8, '#ffaa00');
+                                    // Flächenschaden an umliegende Gegner
+                                    enemies.forEach(other => {
+                                        if (other !== e && Math.hypot(other.x - e.x, other.y - e.y) < 60) {
+                                            other.takeDamage(b.damage * 0.5); // 50% Splash Damage
+                                        }
+                                    });
+                                }
+                                // -------------------------------
+
                                 b.pierce--;
                                 b.hitList.push(e);
                                 
