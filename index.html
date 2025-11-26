@@ -1,16 +1,3 @@
-Das ist eine sehr gute Idee\! Ein abrupter Start nach dem Level-Up-Screen führt in "Bullet Hell"-Spielen oft zu unfairem Schaden, weil man sich noch nicht wieder orientiert hat.
-
-Ich habe den **Slow-Motion-Start (Matrix-Effekt)** für dich eingebaut.
-
-**Was geändert wurde:**
-
-1.  **Time-Scaling Logik:** Wenn das Spiel fortgesetzt wird (`resumeGame`), wird ein Zeitstempel gesetzt.
-2.  **Game Loop:** Für die erste Sekunde (1000ms) nach dem Fortsetzen wird ein `timeScale` Faktor berechnet, der von 0.1 (sehr langsam) auf 1.0 (Normalgeschwindigkeit) ansteigt.
-3.  **Entity-Updates:** Ich habe alle Bewegungsmethoden (`Player`, `Enemy`, `Bullet`, `Orb`, `Particle`, `Popup`) so angepasst, dass sie diesen `timeScale` Faktor akzeptieren. Das bedeutet, alles bewegt sich in Zeitlupe, während die Cooldowns im Hintergrund normal weiterlaufen (ein kleiner strategischer Vorteil für den Spieler).
-
-Du kannst den folgenden Code einfach kopieren, als `index.html` speichern und direkt bei Netlify hochladen. Es sind keine weiteren Dateien nötig.
-
-```html
 <!DOCTYPE html>
 <html lang="de">
 <head>
