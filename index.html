@@ -1,3 +1,16 @@
+Das ist eine sehr gute Idee\! Ein abrupter Start nach dem Level-Up-Screen führt in "Bullet Hell"-Spielen oft zu unfairem Schaden, weil man sich noch nicht wieder orientiert hat.
+
+Ich habe den **Slow-Motion-Start (Matrix-Effekt)** für dich eingebaut.
+
+**Was geändert wurde:**
+
+1.  **Time-Scaling Logik:** Wenn das Spiel fortgesetzt wird (`resumeGame`), wird ein Zeitstempel gesetzt.
+2.  **Game Loop:** Für die erste Sekunde (1000ms) nach dem Fortsetzen wird ein `timeScale` Faktor berechnet, der von 0.1 (sehr langsam) auf 1.0 (Normalgeschwindigkeit) ansteigt.
+3.  **Entity-Updates:** Ich habe alle Bewegungsmethoden (`Player`, `Enemy`, `Bullet`, `Orb`, `Particle`, `Popup`) so angepasst, dass sie diesen `timeScale` Faktor akzeptieren. Das bedeutet, alles bewegt sich in Zeitlupe, während die Cooldowns im Hintergrund normal weiterlaufen (ein kleiner strategischer Vorteil für den Spieler).
+
+Du kannst den folgenden Code einfach kopieren, als `index.html` speichern und direkt bei Netlify hochladen. Es sind keine weiteren Dateien nötig.
+
+```html
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -5,10 +18,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Neon Survivor Roguelite</title>
     
-    <!-- Tailwind CSS für UI Styling -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Firebase SDKs (Compat Version für einfachere Handhabung) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -60,20 +71,15 @@
 </head>
 <body class="text-white">
 
-    <!-- GAME LAYER -->
     <canvas id="gameCanvas"></canvas>
 
-    <!-- UI LAYER -->
     <div id="uiLayer" class="absolute inset-0 pointer-events-none flex flex-col justify-between p-4">
         
-        <!-- HUD (Oben) -->
         <div id="hud" class="flex justify-between items-start hidden">
             <div class="flex flex-col gap-2 w-1/3">
-                <!-- HP Bar -->
                 <div class="w-full bg-gray-800 h-4 rounded border border-gray-600 relative overflow-hidden">
                     <div id="hpBar" class="h-full bg-red-500 shadow-[0_0_10px_red] transition-all duration-200" style="width: 100%;"></div>
                 </div>
-                <!-- XP Bar -->
                 <div class="w-full bg-gray-800 h-2 rounded border border-gray-600 relative overflow-hidden">
                     <div id="xpBar" class="h-full bg-yellow-400 shadow-[0_0_10px_yellow] transition-all duration-200" style="width: 0%;"></div>
                 </div>
@@ -86,11 +92,7 @@
             </div>
         </div>
 
-        <!-- CONTROLS (Unten) -->
         <div id="controls" class="w-full h-full absolute top-0 left-0 pointer-events-auto hidden">
-            <!-- Linker Bereich: Joystick Zone (Dynamisch erstellt im JS) -->
-            
-            <!-- Rechter Bereich: Dash Button -->
             <button id="dashBtn" class="absolute bottom-12 right-8 w-24 h-24 rounded-full border-4 border-neon-pink bg-pink-900/50 text-neon-pink font-bold flex items-center justify-center active:scale-95 transition-transform touch-manipulation">
                 DASH
                 <div id="dashCdOverlay" class="absolute inset-0 bg-black/80 rounded-full flex items-center justify-center text-white hidden">CD</div>
@@ -98,7 +100,6 @@
         </div>
     </div>
 
-    <!-- START SCREEN -->
     <div id="startScreen" class="absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-50 pointer-events-auto">
         <h1 class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600 mb-2 filter drop-shadow-[0_0_10px_rgba(0,255,255,0.8)]">NEON SURVIVOR</h1>
         <p class="text-gray-400 mb-8">Bullet Hell Roguelite Prototype</p>
@@ -115,15 +116,12 @@
         </div>
     </div>
 
-    <!-- LEVEL UP SCREEN -->
     <div id="levelUpScreen" class="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-40 hidden pointer-events-auto">
         <h2 class="text-4xl text-yellow-400 font-bold mb-8 drop-shadow-[0_0_10px_yellow]">LEVEL UP!</h2>
         <div id="cardsContainer" class="flex flex-col md:flex-row gap-4 w-full max-w-4xl px-4 justify-center">
-            <!-- Karten werden hier per JS eingefügt -->
-        </div>
+            </div>
     </div>
 
-    <!-- GAME OVER SCREEN -->
     <div id="gameOverScreen" class="absolute inset-0 bg-red-900/90 flex flex-col items-center justify-center z-50 hidden pointer-events-auto">
         <h2 class="text-5xl text-white font-bold mb-2">GAME OVER</h2>
         <div class="text-2xl text-gray-300 mb-6">Score: <span id="finalScore" class="text-white font-bold">0</span></div>
@@ -220,7 +218,9 @@
             difficultyMultiplier: 1.0,
             enemiesKilledTotal: 0,
             enemiesKilledRecent: 0, // Für Director
-            lastDirectorCheck: 0
+            lastDirectorCheck: 0,
+            // NEU: Für den Slow-Motion Start
+            resumeRampStart: 0
         };
 
         // Input State
@@ -273,7 +273,8 @@
                 this.dashVector = {x:0, y:0};
             }
 
-            update(dt) {
+            // NEU: accept timeScale
+            update(dt, timeScale) {
                 // 1. Bewegung
                 let dx = 0;
                 let dy = 0;
@@ -317,9 +318,10 @@
                 }
                 
                 if (this.isDashing) {
-                    this.x += this.dashVector.x * this.stats.dashSpeed;
-                    this.y += this.dashVector.y * this.stats.dashSpeed;
-                    this.dashTimer -= dt;
+                    // NEU: Skalierte Geschwindigkeit und Timer
+                    this.x += this.dashVector.x * this.stats.dashSpeed * timeScale;
+                    this.y += this.dashVector.y * this.stats.dashSpeed * timeScale;
+                    this.dashTimer -= dt * timeScale;
                     if (this.dashTimer <= 0) this.isDashing = false;
                     
                     // Ghost trail effect
@@ -327,8 +329,9 @@
                         particles.push(new Particle(this.x, this.y, 10, '#ff00ff', 0.5));
                     }
                 } else {
-                    this.x += dx * this.stats.speed;
-                    this.y += dy * this.stats.speed;
+                    // NEU: Skalierte Geschwindigkeit
+                    this.x += dx * this.stats.speed * timeScale;
+                    this.y += dy * this.stats.speed * timeScale;
                 }
 
                 // Boundaries
@@ -343,6 +346,9 @@
                 }
 
                 // 2. Auto-Fire
+                // Anmerkung: Wir nutzen hier 'now' (reale Zeit). Wenn das Spiel in "Zeitlupe" läuft,
+                // kann der Spieler trotzdem mit normaler Feuerrate schießen (Matrix Style).
+                // Das ist ein gewünschter "Bonus" beim Anlaufen.
                 if (now - this.lastShot > this.stats.fireRate && !this.isDashing) {
                     const target = getNearestEnemy(this.x, this.y);
                     if (target) {
@@ -469,11 +475,13 @@
                 }
             }
 
-            update() {
+            // NEU: accept timeScale
+            update(timeScale) {
                 // Movement zum Player
                 const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                this.x += Math.cos(angle) * this.speed;
-                this.y += Math.sin(angle) * this.speed;
+                // NEU: Skalierte Geschwindigkeit
+                this.x += Math.cos(angle) * this.speed * timeScale;
+                this.y += Math.sin(angle) * this.speed * timeScale;
 
                 // Collision Player
                 const dist = Math.hypot(player.x - this.x, player.y - this.y);
@@ -531,9 +539,11 @@
                 this.life = 100; // Frames (oder Zeit)
             }
 
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
+            // NEU: accept timeScale
+            update(timeScale) {
+                // NEU: Skalierte Geschwindigkeit
+                this.x += this.vx * timeScale;
+                this.y += this.vy * timeScale;
                 this.life--;
             }
 
@@ -558,7 +568,8 @@
                 this.magnetized = false;
             }
 
-            update() {
+            // NEU: accept timeScale
+            update(timeScale) {
                 const dist = Math.hypot(player.x - this.x, player.y - this.y);
                 
                 // Magnet logic
@@ -566,8 +577,10 @@
                     this.magnetized = true;
                     const angle = Math.atan2(player.y - this.y, player.x - this.x);
                     const speed = 12; // Schneller Flug zum Spieler
-                    this.x += Math.cos(angle) * speed;
-                    this.y += Math.sin(angle) * speed;
+                    
+                    // NEU: Skalierte Geschwindigkeit
+                    this.x += Math.cos(angle) * speed * timeScale;
+                    this.y += Math.sin(angle) * speed * timeScale;
 
                     if (dist < player.radius + 5) {
                         player.gainXp(this.value);
@@ -602,10 +615,11 @@
                 this.color = color;
             }
 
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.life -= this.decay;
+            // NEU: accept timeScale
+            update(timeScale) {
+                this.x += this.vx * timeScale;
+                this.y += this.vy * timeScale;
+                this.life -= this.decay * timeScale; // Auch das Leben vergeht langsamer
             }
 
             draw() {
@@ -625,9 +639,10 @@
                 this.life = 1.0;
                 this.vy = -1;
             }
-            update() {
-                this.y += this.vy;
-                this.life -= 0.02;
+            // NEU: accept timeScale
+            update(timeScale) {
+                this.y += this.vy * timeScale;
+                this.life -= 0.02 * timeScale;
             }
             draw() {
                 ctx.globalAlpha = this.life;
@@ -789,6 +804,8 @@
             document.getElementById('levelUpScreen').classList.add('hidden');
             state.screen = 'PLAY';
             state.paused = false;
+            // NEU: Startzeit für den Slow-Motion Effekt setzen
+            state.resumeRampStart = Date.now();
         }
 
         // --- GAME LOOP ---
@@ -819,15 +836,31 @@
                 for (let y = 0; y < height; y += gridSize) { ctx.moveTo(0, y); ctx.lineTo(width, y); }
                 ctx.stroke();
 
+                // NEU: Berechne Zeit-Skalierung (Slow-Motion Ramp Up)
+                let timeScale = 1.0;
+                if (state.resumeRampStart > 0) {
+                    const diff = Date.now() - state.resumeRampStart;
+                    const rampDuration = 1000; // 1 Sekunde langsame Beschleunigung
+                    
+                    if (diff < rampDuration) {
+                        // Faktor von 0.1 bis 1.0
+                        timeScale = Math.max(0.1, diff / rampDuration);
+                    } else {
+                        state.resumeRampStart = 0; // Ramp beendet
+                        timeScale = 1.0;
+                    }
+                }
 
                 // Logic
-                state.elapsedTime += dt / 1000;
+                state.elapsedTime += dt / 1000; // Timer läuft "normal" weiter (oder * timeScale wenn man will, dass Zeit auch langsam vergeht)
                 updateDirector();
-                player.update(dt);
+                
+                // NEU: timeScale an updates übergeben
+                player.update(dt, timeScale);
                 
                 // Bullets
                 bullets = bullets.filter(b => {
-                    b.update();
+                    b.update(timeScale);
                     if (b.life <= 0) return false;
                     // Collision Bullet-Enemy
                     for (let e of enemies) {
@@ -841,22 +874,22 @@
 
                 // Enemies
                 enemies = enemies.filter(e => {
-                    e.update();
+                    e.update(timeScale);
                     return e.hp > 0;
                 });
 
                 // Orbs
-                orbs = orbs.filter(o => o.update());
+                orbs = orbs.filter(o => o.update(timeScale));
 
                 // Particles
                 particles = particles.filter(p => {
-                    p.update();
+                    p.update(timeScale);
                     return p.life > 0;
                 });
 
                 // Popups
                 popups = popups.filter(p => {
-                    p.update();
+                    p.update(timeScale);
                     return p.life > 0;
                 });
 
@@ -1019,6 +1052,8 @@
             state.enemiesKilledRecent = 0;
             state.screen = 'PLAY';
             state.paused = false;
+            // NEU
+            state.resumeRampStart = 0;
 
             player = new Player();
             bullets = [];
@@ -1058,3 +1093,4 @@
     </script>
 </body>
 </html>
+```
