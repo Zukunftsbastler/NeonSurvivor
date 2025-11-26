@@ -147,88 +147,44 @@
          * ------------------------------------------------------------------
          */
         
-        // --- KONFIGURATION: HIER FIREBASE DATEN EINFÜGEN ---
-        // Setze MOCK_MODE auf 'false', sobald du die firebaseConfig ausgefüllt hast.
-        const MOCK_MODE = true; 
-
-        const firebaseConfig = {
-            apiKey: "HIER_API_KEY_EINFÜGEN",
-            authDomain: "DEIN_PROJEKT.firebaseapp.com",
-            projectId: "DEIN_PROJEKT_ID",
-            storageBucket: "DEIN_PROJEKT.appspot.com",
-            messagingSenderId: "DEINE_SENDER_ID",
-            appId: "DEINE_APP_ID"
-        };
-
-        // --- FIREBASE INITIALISIERUNG ---
-        let db;
+        // --- LOCAL STORAGE HIGHSCORE SYSTEM ---
         
-        if (!MOCK_MODE) {
-            try {
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                console.log("Firebase initialized");
-            } catch (e) {
-                console.error("Firebase Init Error (Check Config):", e);
-                // Fallback to mock if init fails
-                // MOCK_MODE = true; // Const can't be reassigned, handle in logic
-            }
+        // Initiale Dummy-Daten, falls leer
+        if (!localStorage.getItem('neon_survivor_scores')) {
+            const initialScores = [
+                { name: "NEON_KING", score: 5000 },
+                { name: "CYBER_JANE", score: 3500 },
+                { name: "GLITCH", score: 2000 }
+            ];
+            localStorage.setItem('neon_survivor_scores', JSON.stringify(initialScores));
         }
 
-        // --- DATA HANDLING (Mock vs. Real) ---
-
-        // 1. Save Score
+        // 1. Score Speichern (Lokal)
         async function saveHighscore(name, score) {
-            if (MOCK_MODE || !db) {
-                // LOCAL MOCK
+            try {
                 const scores = JSON.parse(localStorage.getItem('neon_survivor_scores') || '[]');
-                scores.push({ name, score, timestamp: Date.now() });
+                scores.push({
+                    name: name,
+                    score: score,
+                    timestamp: Date.now()
+                });
                 localStorage.setItem('neon_survivor_scores', JSON.stringify(scores));
-                console.log("Score saved locally (Mock):", name, score);
-            } else {
-                // FIREBASE REAL
-                try {
-                    await db.collection("leaderboard").add({
-                        name: name,
-                        score: score,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    console.log("Score saved to Firestore:", name, score);
-                } catch (e) {
-                    console.error("Firestore Save Error:", e);
-                }
+                console.log("Score saved locally:", name, score);
+            } catch (e) {
+                console.error("Save Error:", e);
             }
         }
 
-        // 2. Fetch Leaderboard
+        // 2. Leaderboard Laden (Lokal)
         async function fetchLeaderboard() {
-            if (MOCK_MODE || !db) {
-                // LOCAL MOCK
-                if (!localStorage.getItem('neon_survivor_scores')) {
-                    // Init dummy data if empty
-                    const initial = [
-                        { name: "NEON_KING", score: 5000 },
-                        { name: "CYBER_JANE", score: 3500 },
-                        { name: "GLITCH", score: 2000 }
-                    ];
-                    localStorage.setItem('neon_survivor_scores', JSON.stringify(initial));
-                }
+            try {
                 const scores = JSON.parse(localStorage.getItem('neon_survivor_scores') || '[]');
+                // Sortierung absteigend nach Score
                 scores.sort((a, b) => b.score - a.score);
-                return scores.slice(0, 10);
-            } else {
-                // FIREBASE REAL
-                try {
-                    const snapshot = await db.collection("leaderboard")
-                        .orderBy("score", "desc")
-                        .limit(10)
-                        .get();
-                    
-                    return snapshot.docs.map(doc => doc.data());
-                } catch (e) {
-                    console.error("Firestore Fetch Error:", e);
-                    return [{name: "Error", score: 0}];
-                }
+                return scores.slice(0, 10); // Top 10
+            } catch (e) {
+                console.error("Fetch Error:", e);
+                return [];
             }
         }
 
