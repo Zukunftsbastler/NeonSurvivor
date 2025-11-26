@@ -182,8 +182,25 @@
             { id: 7, name: "Transzendent",  color: "#ffffff", shadow: "#ffffff", mult: 25.0, weight: 5 }    // Weiß/Rainbow
         ];
 
+        const WEAPONS = {
+            blaster: { name: "Neo-Blaster", damage: 1.0, speed: 1.0, rate: 1.0, count: 0, spread: 0.1, life: 1.0, pierce: 1, color: '#fff' },
+            shotgun: { name: "Void Shotgun", damage: 0.6, speed: 0.8, rate: 2.2, count: 4, spread: 0.6, life: 0.4, pierce: 1, color: '#ff0' },
+            sniper:  { name: "Railgun",     damage: 4.0, speed: 2.5, rate: 3.0, count: 0, spread: 0.0, life: 1.5, pierce: 99, color: '#0ff' },
+            smg:     { name: "Uzi",         damage: 0.4, speed: 1.3, rate: 0.2, count: 0, spread: 0.4, life: 0.7, pierce: 1, color: '#f0f' },
+            nova:    { name: "Helix",       damage: 0.8, speed: 0.6, rate: 1.5, count: 2, spread: 0.2, life: 2.0, pierce: 3, color: '#0f0' }
+        };
+
         // Die reinen Upgrade-Typen (getrennt von Werten)
         const UPGRADE_TYPES = [
+            { 
+                id: 'weapon_swap', 
+                name: 'Waffenschmied', 
+                baseVal: 0, 
+                format: (v) => `Rüste ${WEAPONS[v].name} aus`, 
+                apply: (p, v) => { 
+                    p.currentWeapon = WEAPONS[v];
+                } 
+            },
             { 
                 id: 'multishot', 
                 name: 'Multishot', 
@@ -276,6 +293,13 @@
                     value = Math.max(1, Math.round(value)); // Mindestens 1, immer ganzzahlig
                 }
 
+                if (type.id === 'weapon_swap') {
+                    // Wähle zufällige Waffe aus (außer der aktuellen)
+                    const keys = Object.keys(WEAPONS).filter(k => WEAPONS[k] !== player.currentWeapon);
+                    const randomKey = keys[Math.floor(Math.random() * keys.length)];
+                    value = randomKey; 
+                }
+
                 return {
                     type: type,
                     rarity: rarity,
@@ -338,6 +362,7 @@
                 this.y = height / 2;
                 this.radius = 15;
                 this.color = '#00f3ff';
+                this.currentWeapon = WEAPONS.blaster; // Startwaffe
                 this.stats = {
                     maxHp: 100, hp: 100, speed: 4, damage: 20, fireRate: 400,
                     projectileCount: 1, projectileSpeed: 8, pickupRange: 100,
@@ -397,7 +422,8 @@
                 // Auto Fire (Independent of timeScale for Matrix feeling, or scaled? keeping independent is fun)
                 // Let's scale fire rate cooldown check slightly so you don't shoot infinite bullets in pause
                 // Actually, standard delta time logic is safer.
-                if (now - this.lastShot > this.stats.fireRate && !this.isDashing) {
+                const currentFireRate = this.stats.fireRate * this.currentWeapon.rate;
+                if (now - this.lastShot > currentFireRate && !this.isDashing) {
                     const target = getNearestEnemy(this.x, this.y);
                     if (target) {
                         this.shoot(target);
@@ -407,13 +433,34 @@
             }
 
             shoot(target) {
-                const angle = Math.atan2(target.y - this.y, target.x - this.x);
-                const count = this.stats.projectileCount;
-                const spread = 0.2; 
-                for (let i = 0; i < count; i++) {
-                    let angleOffset = 0;
-                    if (count > 1) angleOffset = -spread/2 + (spread / (count-1)) * i;
-                    bullets.push(new Bullet(this.x, this.y, angle + angleOffset, this.stats.damage, this.stats.projectileSpeed));
+                const w = this.currentWeapon;
+                const baseAngle = Math.atan2(target.y - this.y, target.x - this.x);
+                
+                // Kombiniere Player-Stats mit Waffen-Stats
+                const totalCount = this.stats.projectileCount + w.count;
+                
+                // Berechnung der Streuung (Spread)
+                const totalSpread = w.spread; 
+                
+                for (let i = 0; i < totalCount; i++) {
+                    // Winkel berechnen: Bei 1 Projektil geradeaus, sonst verteilt
+                    let angleOffset = (Math.random() - 0.5) * totalSpread; 
+                    if (totalCount > 1) {
+                        // Gleichmäßige Verteilung (Fächer) + etwas Zufall (Chaos)
+                        const fraction = i / (totalCount - 1);
+                        angleOffset = (fraction - 0.5) * totalSpread + (Math.random() - 0.5) * 0.1;
+                    }
+
+                    bullets.push(new Bullet(
+                        this.x, 
+                        this.y, 
+                        baseAngle + angleOffset, 
+                        this.stats.damage * w.damage, 
+                        this.stats.projectileSpeed * w.speed, 
+                        100 * w.life,   // Basis-Lebensdauer * Waffen-Faktor
+                        w.pierce,
+                        w.color
+                    ));
                 }
             }
 
@@ -563,18 +610,27 @@
         }
 
         class Bullet {
-            constructor(x, y, angle, damage, speed) {
+            constructor(x, y, angle, damage, speed, lifeTime, pierce, color) {
                 this.x = x; this.y = y;
-                this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
-                this.damage = damage; this.radius = 4; this.life = 100;
+                this.vx = Math.cos(angle) * speed; 
+                this.vy = Math.sin(angle) * speed;
+                this.damage = damage; 
+                this.radius = 4; 
+                this.life = lifeTime; // Lebensdauer in Frames
+                this.pierce = pierce; // Durchschlagskraft
+                this.color = color;
+                this.hitList = []; // Damit wir denselben Gegner nicht 2x pro Frame treffen
             }
             update(timeScale) {
-                this.x += this.vx * timeScale; this.y += this.vy * timeScale;
-                this.life--;
+                this.x += this.vx * timeScale; 
+                this.y += this.vy * timeScale;
+                this.life -= 1 * timeScale;
             }
             draw() {
-                ctx.save(); ctx.shadowBlur = 10; ctx.shadowColor = '#00f3ff'; ctx.fillStyle = '#fff';
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill(); ctx.restore();
+                ctx.save(); 
+                ctx.shadowBlur = 10; ctx.shadowColor = this.color; ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill(); 
+                ctx.restore();
             }
         }
 
@@ -783,12 +839,24 @@
                 bullets = bullets.filter(b => {
                     b.update(timeScale);
                     if (b.life <= 0) return false;
+                    
                     for (let e of enemies) {
+                        // Kollisionsprüfung
                         if (e.hp > 0 && Math.hypot(b.x - e.x, b.y - e.y) < e.radius + b.radius) {
-                            e.takeDamage(b.damage); return false;
+                            // Verhindern, dass eine Kugel denselben Gegner mehrfach pro Frame trifft (bei Durchschlag wichtig)
+                            if (!b.hitList.includes(e)) {
+                                e.takeDamage(b.damage);
+                                b.pierce--;
+                                b.hitList.push(e);
+                                
+                                // Effekt: Rückstoß oder kleiner Blitz bei Treffer
+                                createParticles(e.x, e.y, 3, b.color);
+                            }
+                            
+                            if (b.pierce <= 0) return false; // Kugel wird zerstört
                         }
                     }
-                    return true;
+                    return true; // Kugel lebt weiter (fliegt durch)
                 });
 
                 enemies = enemies.filter(e => { e.update(timeScale); return e.hp > 0; });
