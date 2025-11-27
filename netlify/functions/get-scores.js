@@ -1,16 +1,15 @@
-const Redis = require("ioredis");
+import Redis from "ioredis";
 
 export default async (req, context) => {
     try {
         const client = new Redis(process.env.REDIS_URL);
 
-        // ZREVRANGE: Hole Top 10 Scores (höchste zuerst) mit Scores
-        // 'WITHSCORES' sorgt dafür, dass wir ["Name", "100", "Name2", "90"] zurückbekommen
+        // ZREVRANGE: Hole Top 10
         const rawData = await client.zrevrange("neon_leaderboard", 0, 9, "WITHSCORES");
         
         client.quit();
 
-        // Formatierung für das Frontend
+        // Formatierung
         const formattedScores = [];
         for (let i = 0; i < rawData.length; i += 2) {
             const memberId = rawData[i];
@@ -26,7 +25,7 @@ export default async (req, context) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Redis Error:", error);
         return new Response(JSON.stringify([]), { status: 500 });
     }
 };
