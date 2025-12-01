@@ -154,6 +154,16 @@
         }
 
         async function saveHighscore(name, score) {
+            // Validierung
+            if (typeof name !== 'string') name = "Unknown";
+            name = name.trim().slice(0, 12).replace(/[<>]/g, ""); // Basic Sanitization
+            if (!name) name = "Anon";
+            
+            if (typeof score !== 'number' || isNaN(score) || score < 0 || score > 10000000) {
+                console.warn("Ungültiger Score erkannt:", score);
+                return;
+            }
+
             // Fallback: Wenn wir lokal testen, speichern wir weiterhin im Browser
             if (window.location.hostname === 'localhost' || window.location.protocol === 'file:') {
                 console.log("Localhost erkannt: Speichere Score lokal.");
@@ -457,7 +467,7 @@
                     if (len > 1 && !input.joystick.active) { dx /= len; dy /= len; }
                 }
 
-                const now = Date.now();
+                const now = performance.now();
                 if (input.dash && now - this.lastDashTime > this.stats.dashCooldown) {
                     this.isDashing = true;
                     this.dashTimer = 200;
@@ -829,7 +839,7 @@
         let spawnInterval = 60;
 
         function updateDirector() {
-            const now = Date.now();
+            const now = performance.now();
             state.difficultyMultiplier = 1 + (state.elapsedTime / 60) * 0.5;
 
             if (now - state.lastDirectorCheck > 5000) {
@@ -900,7 +910,7 @@
             document.getElementById('levelUpScreen').classList.add('hidden');
             state.screen = 'PLAY';
             state.paused = false;
-            state.resumeRampStart = Date.now();
+            state.resumeRampStart = performance.now();
         }
 
         // --- LOOP & INPUT ---
@@ -923,7 +933,7 @@
                 // Slow Motion Ramp
                 let timeScale = 1.0;
                 if (state.resumeRampStart > 0) {
-                    const diff = Date.now() - state.resumeRampStart;
+                    const diff = performance.now() - state.resumeRampStart;
                     if (diff < 1000) timeScale = Math.max(0.1, diff / 1000);
                     else state.resumeRampStart = 0;
                 }
@@ -967,7 +977,10 @@
                                     createParticles(e.x, e.y, 8, '#ffaa00');
                                     // Flächenschaden an umliegende Gegner
                                     enemies.forEach(other => {
-                                        if (other !== e && Math.hypot(other.x - e.x, other.y - e.y) < 60) {
+                                        const dx = other.x - e.x;
+                                        const dy = other.y - e.y;
+                                        // 60^2 = 3600
+                                        if (other !== e && (dx*dx + dy*dy) < 3600) {
                                             other.takeDamage(b.damage * 0.5); // 50% Splash Damage
                                         }
                                     });
@@ -1051,8 +1064,10 @@
         function createJoystickVisual() {
             if (stickBase) removeJoystickVisual();
             stickBase = document.createElement('div');
+            stickBase.className = 'joystick-part';
             stickBase.style.cssText = `position: absolute; left: ${input.joystick.originX - 50}px; top: ${input.joystick.originY - 50}px; width: 100px; height: 100px; border: 2px solid rgba(0, 243, 255, 0.3); border-radius: 50%; pointer-events: none;`;
             stickKnob = document.createElement('div');
+            stickKnob.className = 'joystick-part';
             stickKnob.style.cssText = `position: absolute; left: ${input.joystick.originX - 25}px; top: ${input.joystick.originY - 25}px; width: 50px; height: 50px; background: rgba(0, 243, 255, 0.5); border-radius: 50%; pointer-events: none;`;
             controlsDiv.appendChild(stickBase); controlsDiv.appendChild(stickKnob);
         }
@@ -1067,6 +1082,18 @@
         function removeJoystickVisual() {
             if (stickBase) stickBase.remove(); if (stickKnob) stickKnob.remove();
             stickBase = null; stickKnob = null;
+            // Robust cleanup
+            document.querySelectorAll('.joystick-part').forEach(el => el.remove());
+        }
+
+        function resetInput() {
+            input.keys = {};
+            input.dash = false;
+            input.joystick.active = false;
+            input.joystick.id = null;
+            input.joystick.x = 0;
+            input.joystick.y = 0;
+            removeJoystickVisual();
         }
 
         // --- FLOW ---
@@ -1080,18 +1107,27 @@
         });
 
         function startGame() {
+            resetInput();
+            
+            // Reset Timing & State Variables to prevent carry-over bugs
+            lastTime = 0; 
+            state.lastDirectorCheck = 0;
+            spawnInterval = 60;
+
             document.getElementById('startScreen').classList.add('hidden');
             document.getElementById('hud').classList.remove('hidden');
             document.getElementById('controls').classList.remove('hidden');
-            state.score = 0; state.elapsedTime = 0; state.level = 1;
+            state.score = 0; state.elapsedTime = 0; 
+            // Removed state.level to fix duplicate state issue
             state.difficultyMultiplier = 1; state.enemiesKilledTotal = 0; state.enemiesKilledRecent = 0;
             state.screen = 'PLAY'; state.paused = false; state.resumeRampStart = 0;
             player = new Player(); bullets = []; enemies = []; particles = []; orbs = []; popups = []; spawnTimer = 0;
-            requestAnimationFrame(gameLoop);
+            // Removed requestAnimationFrame(gameLoop) to prevent infinite speedup
         }
 
         async function gameOver() {
             state.screen = 'GAMEOVER';
+            resetInput(); // Clean up input state on death
             document.getElementById('controls').classList.add('hidden');
             document.getElementById('hud').classList.add('hidden');
             document.getElementById('gameOverScreen').classList.remove('hidden');
@@ -1107,6 +1143,9 @@
                 list.appendChild(li);
             });
         }
+
+        // Start Game Loop Once
+        requestAnimationFrame(gameLoop);
     </script>
 </body>
 </html>
