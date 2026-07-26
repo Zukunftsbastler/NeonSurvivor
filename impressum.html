@@ -1,73 +1,389 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Impressum & Datenschutz - Neon Survivor</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#02070a" />
+    <meta name="robots" content="noindex" />
+    <meta name="referrer" content="no-referrer" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2302070a'/%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%230c2a24' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='5' fill='none' stroke='%230c2a24' stroke-width='2'/%3E%3Cpath d='M16 16 L27 12 A11 11 0 0 1 27 20 Z' fill='%233dfb87' opacity='.55'/%3E%3Ccircle cx='23' cy='10' r='2.5' fill='%23ffb000'/%3E%3C/svg%3E"
+    />
+    <title>Impressum &amp; Datenschutz — Seegang</title>
+
+    <!--
+      Eigenes CSS, inline. Kein Tailwind-CDN und keine Google Fonts mehr:
+      Beides übertrug beim Aufruf die IP-Adresse der Besucher an Dritte und
+      musste deshalb in der Datenschutzerklärung stehen. Jetzt lädt diese
+      Seite nichts von fremden Servern — der einfachste Weg, korrekt zu sein.
+    -->
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
-        body {
-            background-color: #050505;
-            font-family: 'Orbitron', sans-serif;
-            color: #e5e7eb;
-        }
-        h1, h2 { color: #00f3ff; text-shadow: 0 0 10px rgba(0, 243, 255, 0.5); }
-        a { color: #ff00ff; text-decoration: underline; }
+      :root {
+        --screen: #02070a;
+        --system: #3dfb87;
+        --salvage: #d8fff0;
+        --chrome: #5f8f7c;
+        --hairline: rgba(61, 251, 135, 0.22);
+        --font: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
+          'Liberation Mono', monospace;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        padding: max(1.5rem, env(safe-area-inset-top)) 1.25rem 4rem;
+        background: var(--screen);
+        color: var(--salvage);
+        font-family: var(--font);
+        font-size: 0.9rem;
+        line-height: 1.65;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      main { max-width: 46rem; margin: 0 auto; }
+
+      h1 {
+        font-size: 1.5rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--system);
+        margin: 2.5rem 0 1rem;
+      }
+
+      h1:first-of-type { margin-top: 1rem; }
+
+      h2 {
+        font-size: 1rem;
+        letter-spacing: 0.08em;
+        color: var(--system);
+        margin: 2rem 0 0.5rem;
+      }
+
+      h3 {
+        font-size: 0.88rem;
+        color: var(--salvage);
+        margin: 1.4rem 0 0.35rem;
+      }
+
+      p, ul { margin: 0 0 0.9rem; }
+      ul { padding-left: 1.2rem; }
+      li { margin-bottom: 0.35rem; }
+
+      a { color: var(--system); }
+
+      section {
+        border: 1px solid var(--hairline);
+        padding: 1rem 1.1rem;
+        margin-bottom: 1.5rem;
+        background: rgba(3, 14, 12, 0.6);
+      }
+
+      .back {
+        display: inline-block;
+        padding: 0.6rem 1.1rem;
+        border: 1px solid var(--hairline);
+        color: var(--system);
+        text-decoration: none;
+        letter-spacing: 0.1em;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+      }
+
+      .meta { color: var(--chrome); font-size: 0.78rem; }
+
+      dl { margin: 0; }
+      dt { color: var(--chrome); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.7rem; }
+      dd { margin: 0.1rem 0 0; }
+
+      .todo {
+        border: 1px dashed #ffb000;
+        background: rgba(255, 176, 0, 0.08);
+        color: #ffd98a;
+        padding: 0.8rem 1rem;
+        margin: 1rem 0;
+        font-size: 0.82rem;
+      }
+
+      .todo strong { color: #ffb000; }
     </style>
-</head>
-<body class="p-8 max-w-4xl mx-auto">
+  </head>
 
-    <a href="index.html" class="inline-block mb-8 no-underline px-4 py-2 border border-neon-pink text-neon-pink hover:bg-pink-900/50 rounded transition-all">&larr; Zurück zum Spiel</a>
+  <body>
+    <main>
+      <a class="back" href="index.html">&larr; Zurück zum Spiel</a>
 
-    <h1 class="text-4xl font-bold mb-8">Impressum</h1>
-    
-    <div class="bg-gray-900 p-6 rounded-lg border border-gray-700 mb-12 shadow-[0_0_15px_rgba(0,243,255,0.1)]">
-        <h2 class="text-2xl font-bold mb-4">Angaben gemäß § 5 TMG</h2>
-        <p class="mb-2">Till Albert</p>
-        <p class="mb-2">Marienkirchhof 6</p>
-        <p class="mb-4">24937 Flensburg</p>
+      <h1>Impressum</h1>
 
-        <h3 class="text-xl font-bold mb-2 mt-6">Kontakt</h3>
-        <p>E-Mail: mail@tillalbert.de</p>
-        
-        <p class="mt-4 text-sm text-gray-500">Quelle: Erstellt mit Unterstützung von KI.</p>
-    </div>
+      <section>
+        <p class="meta">
+          Angaben gemäß § 5 Digitale-Dienste-Gesetz (DDG). „Seegang“ ist ein
+          privates, nicht kommerzielles Freizeitprojekt: Es wird ohne
+          Gewinnerzielungsabsicht betrieben, enthält keine Werbung, verkauft
+          nichts und verfolgt keine geschäftlichen Zwecke. Die folgenden Angaben
+          werden freiwillig gemacht.
+        </p>
 
-    <h1 class="text-4xl font-bold mb-8">Datenschutzerklärung</h1>
+        <dl>
+          <dt>Anbieter und inhaltlich Verantwortlicher</dt>
+          <dd>Till Albert</dd>
+          <dd>Marienkirchhof 6</dd>
+          <dd>24937 Flensburg</dd>
+          <dd>Deutschland</dd>
 
-    <div class="bg-gray-900 p-6 rounded-lg border border-gray-700 space-y-6 shadow-[0_0_15px_rgba(0,243,255,0.1)]">
-        
-        <section>
-            <h2 class="text-2xl font-bold mb-2">1. Datenschutz auf einen Blick</h2>
-            <p><strong>Allgemeine Hinweise:</strong> Die folgenden Hinweise geben einen einfachen Überblick darüber, was mit Ihren personenbezogenen Daten passiert, wenn Sie diese Website besuchen.</p>
-        </section>
+          <dt>Kontakt</dt>
+          <dd>E-Mail: <a href="mailto:mail@tillalbert.de">mail@tillalbert.de</a></dd>
+        </dl>
+      </section>
 
-        <section>
-            <h2 class="text-2xl font-bold mb-2">2. Hosting und Content Delivery Networks (CDN)</h2>
-            
-            <h3 class="text-xl font-bold mt-4 mb-2">Externes Hosting (Netlify)</h3>
-            <p>Diese Website wird bei einem externen Dienstleister gehostet (Netlify). Die personenbezogenen Daten, die auf dieser Website erfasst werden, werden auf den Servern des Hosters gespeichert. Hierbei kann es sich v. a. um IP-Adressen handeln.</p>
-            <p>Die Nutzung erfolgt zum Zwecke der Vertragserfüllung gegenüber unseren potenziellen und bestehenden Kunden (Art. 6 Abs. 1 lit. b DSGVO) und im Interesse einer sicheren, schnellen und effizienten Bereitstellung unseres Online-Angebots durch einen professionellen Anbieter (Art. 6 Abs. 1 lit. f DSGVO).</p>
+      <section>
+        <h2>Haftung für Inhalte</h2>
+        <p>
+          Die Inhalte dieses Angebots wurden mit Sorgfalt erstellt. Für die
+          Richtigkeit, Vollständigkeit und Aktualität kann jedoch keine Gewähr
+          übernommen werden. Als Diensteanbieter bin ich gemäß § 7 Abs. 1 DDG für
+          eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen
+          verantwortlich. Nach §§ 8 bis 10 DDG bin ich als Diensteanbieter jedoch
+          nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen
+          zu überwachen oder nach Umständen zu forschen, die auf eine
+          rechtswidrige Tätigkeit hinweisen.
+        </p>
 
-            <h3 class="text-xl font-bold mt-4 mb-2">Google Fonts</h3>
-            <p>Diese Seite nutzt zur einheitlichen Darstellung von Schriftarten so genannte Google Fonts, die von Google bereitgestellt werden. Beim Aufruf einer Seite lädt Ihr Browser die benötigten Web Fonts in ihren Browsercache, um Texte und Schriftarten korrekt anzuzeigen. Zu diesem Zweck muss der von Ihnen verwendete Browser Verbindung zu den Servern von Google aufnehmen. Hierdurch erlangt Google Kenntnis darüber, dass über Ihre IP-Adresse diese Website aufgerufen wurde.</p>
-            
-            <h3 class="text-xl font-bold mt-4 mb-2">Tailwind CSS (CDN)</h3>
-            <p>Wir nutzen das Content Delivery Network (CDN) von Tailwindcss.com, um das Design der Seite zu laden. Auch hierbei wird Ihre IP-Adresse an den CDN-Betreiber übertragen.</p>
-        </section>
+        <h2>Haftung für Links</h2>
+        <p>
+          Dieses Angebot verlinkt nicht auf externe Websites. Sollten künftig
+          Verweise hinzukommen, gilt: Für die Inhalte verlinkter Seiten ist stets
+          deren jeweiliger Anbieter verantwortlich. Zum Zeitpunkt der Verlinkung
+          werden fremde Inhalte auf erkennbare Rechtsverstöße überprüft.
+        </p>
 
-        <section>
-            <h2 class="text-2xl font-bold mb-2">3. Datenerfassung auf dieser Website</h2>
-            
-            <h3 class="text-xl font-bold mt-4 mb-2">Firebase (Google)</h3>
-            <p>Wir nutzen Firebase (ein Dienst von Google) für die Speicherung von Highscores (Leaderboard). Wenn Sie einen Highscore speichern, werden Ihr gewählter Nickname und Ihr Punktestand an Firebase übertragen und dort gespeichert. Die Datenverarbeitung erfolgt in der Regel auf Servern in den USA.</p>
-            
-            <h3 class="text-xl font-bold mt-4 mb-2">Local Storage</h3>
-            <p>Wir nutzen den lokalen Speicher Ihres Browsers (Local Storage), um Ihre Highscores lokal auf Ihrem Gerät zu speichern. Diese Daten verlassen Ihr Gerät nicht, es sei denn, sie werden explizit an das Leaderboard gesendet.</p>
-        </section>
+        <h2>Urheberrecht</h2>
+        <p>
+          Der Quelltext dieses Projekts steht unter der Apache-Lizenz 2.0. Die
+          auf dieser Website dargestellten Inhalte unterliegen im Übrigen dem
+          deutschen Urheberrecht.
+        </p>
 
-    </div>
+        <h2>Verbraucherstreitbeilegung</h2>
+        <p>
+          Da es sich um ein privates Angebot ohne Gewinnerzielungsabsicht
+          handelt, kommen keine Verbraucherverträge zustande. Eine Teilnahme an
+          Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle
+          erfolgt nicht und ist nicht erforderlich. Die frühere
+          Online-Streitbeilegungsplattform der Europäischen Kommission wurde zum
+          20. Juli 2025 eingestellt; ein Verweis darauf entfällt daher.
+        </p>
+      </section>
 
-</body>
+      <h1>Datenschutzerklärung</h1>
+
+      <section>
+        <h2>1. Verantwortlicher</h2>
+        <p>
+          Verantwortlich für die Datenverarbeitung auf dieser Website im Sinne
+          der Datenschutz-Grundverordnung (DSGVO) ist die im Impressum genannte
+          Person. Kontakt für Datenschutzanliegen:
+          <a href="mailto:mail@tillalbert.de">mail@tillalbert.de</a>.
+        </p>
+        <p>
+          Ein Datenschutzbeauftragter ist nicht bestellt; die gesetzlichen
+          Voraussetzungen dafür liegen bei diesem privaten Angebot nicht vor.
+        </p>
+
+        <h2>2. Das Wichtigste vorweg</h2>
+        <ul>
+          <li>Es werden <strong>keine Cookies</strong> gesetzt.</li>
+          <li>
+            Es findet <strong>kein Tracking</strong>, keine Reichweitenmessung
+            und keine Analyse des Nutzungsverhaltens statt.
+          </li>
+          <li>Es wird <strong>keine Werbung</strong> ausgeliefert.</li>
+          <li>
+            Es werden <strong>keine Inhalte von fremden Servern</strong> nachgeladen
+            — keine Schriftarten, keine Skript-Bibliotheken, keine CDNs. Alles,
+            was das Spiel braucht, liegt auf demselben Server wie die Seite selbst.
+          </li>
+          <li>
+            Ein Eintrag in die Bestenliste erfolgt <strong>nur, wenn du ihn
+            ausdrücklich auslöst</strong>.
+          </li>
+        </ul>
+
+        <h2>3. Aufruf der Website (Hosting)</h2>
+        <p>
+          Diese Website wird bei der Netlify, Inc., 512 2nd Street, Suite 200,
+          San Francisco, CA 94107, USA gehostet. Beim Aufruf verarbeitet Netlify
+          technisch notwendige Verbindungsdaten in Server-Logfiles, insbesondere:
+        </p>
+        <ul>
+          <li>IP-Adresse des anfragenden Geräts</li>
+          <li>Datum und Uhrzeit des Zugriffs</li>
+          <li>Name und URL der abgerufenen Datei</li>
+          <li>übertragene Datenmenge und Meldung über den Abruferfolg</li>
+          <li>verwendeter Browsertyp und dessen Version sowie das Betriebssystem</li>
+        </ul>
+        <p>
+          <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO. Das
+          berechtigte Interesse besteht in der technisch fehlerfreien
+          Bereitstellung und der Sicherheit des Angebots. Diese Daten werden nicht
+          mit anderen Datenquellen zusammengeführt und nicht zur Identifizierung
+          von Personen verwendet.
+        </p>
+        <p>
+          <strong>Auftragsverarbeitung und Drittlandübermittlung:</strong> Mit
+          Netlify besteht ein Vertrag zur Auftragsverarbeitung nach Art. 28 DSGVO.
+          Eine Verarbeitung in den USA ist nicht ausgeschlossen. Netlify ist unter
+          dem EU-US Data Privacy Framework zertifiziert; ergänzend gelten die
+          Standardvertragsklauseln der EU-Kommission nach Art. 46 Abs. 2 lit. c
+          DSGVO. Trotz dieser Garantien lässt sich ein Zugriff US-amerikanischer
+          Behörden nicht mit letzter Sicherheit ausschließen.
+        </p>
+        <p class="meta">
+          Speicherdauer: Die Logfiles werden vom Hoster nach dessen
+          Aufbewahrungsfristen automatisch gelöscht. Ein Zugriff auf einzelne
+          Logdaten durch den Anbieter dieses Spiels findet nicht statt.
+        </p>
+
+        <h2>4. Bestenliste</h2>
+        <p>
+          Das Spiel bietet am Ende einer Fahrt an, den erreichten Punktestand in
+          eine öffentlich sichtbare Bestenliste einzutragen. <strong>Dieser
+          Schritt ist freiwillig</strong> und geschieht ausschließlich, wenn du
+          die Schaltfläche „In die Bestenliste eintragen“ betätigst. Ohne diese
+          Betätigung verlässt kein Spielstand dein Gerät.
+        </p>
+        <p>Dabei werden übertragen und gespeichert:</p>
+        <ul>
+          <li>das von dir frei gewählte Rufzeichen (maximal 12 Zeichen)</li>
+          <li>der erreichte Punktestand</li>
+          <li>die Dauer der Fahrt (zur Erkennung manipulierter Einträge)</li>
+          <li>der Zeitpunkt des Eintrags</li>
+        </ul>
+        <p>
+          <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO
+          (Einwilligung). Die Einwilligung erteilst du durch das Betätigen der
+          Schaltfläche. Du kannst sie jederzeit mit Wirkung für die Zukunft
+          widerrufen; eine formlose E-Mail genügt. Die Rechtmäßigkeit der bis zum
+          Widerruf erfolgten Verarbeitung bleibt davon unberührt.
+        </p>
+        <p>
+          <strong>Bitte gib kein Rufzeichen an, das dich identifiziert.</strong>
+          Ein frei erfundenes Kürzel genügt vollkommen. Trägst du dennoch einen
+          Klarnamen ein, veröffentlichst du diesen selbst — auf Wunsch lösche ich
+          den Eintrag jederzeit.
+        </p>
+        <p class="meta">
+          Speicherdauer: Es werden höchstens die 100 besten Einträge vorgehalten;
+          darunterliegende Einträge werden automatisch entfernt. Auf Anfrage
+          lösche ich jeden Eintrag umgehend.
+        </p>
+
+        <div class="todo">
+          <strong>Vor dem Deployment ausfüllen:</strong> Die Bestenliste liegt in
+          einer Redis-Datenbank, die über die Umgebungsvariable
+          <code>REDIS_URL</code> angebunden ist. Trage hier den tatsächlichen
+          Anbieter, dessen Firmensitz und den Serverstandort ein — zum Beispiel:
+          „Die Daten werden bei der <em>[Anbieter, Anschrift]</em> auf Servern in
+          <em>[Standort]</em> gespeichert. Es besteht ein Auftragsverarbeitungs-
+          vertrag nach Art. 28 DSGVO.“ Liegt der Anbieter außerhalb der EU/des
+          EWR, ergänze bitte die Garantien nach Art. 44 ff. DSGVO analog zum
+          Abschnitt Hosting. Diese Angabe ist Pflicht — bitte nicht
+          weglassen und diesen Kasten anschließend entfernen.
+        </div>
+
+        <h2>5. Schutz vor Missbrauch der Bestenliste</h2>
+        <p>
+          Damit die Bestenliste nicht automatisiert geflutet werden kann, wird
+          beim Eintragen die Anzahl der Anfragen kurzzeitig begrenzt. Dazu wird
+          aus der IP-Adresse ein nicht rückrechenbarer Hashwert gebildet und als
+          Zähler gespeichert. <strong>Die IP-Adresse selbst wird dabei nicht
+          gespeichert</strong>, und der Zähler wird nach 60 Sekunden automatisch
+          gelöscht.
+        </p>
+        <p>
+          <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO. Das
+          berechtigte Interesse besteht in der Abwehr von Missbrauch.
+        </p>
+
+        <h2>6. Lokale Speicherung auf deinem Gerät</h2>
+        <p>
+          Das Spiel legt im lokalen Speicher deines Browsers (Local Storage)
+          folgende Angaben ab:
+        </p>
+        <ul>
+          <li>das zuletzt verwendete Rufzeichen, damit du es nicht neu eintippen musst</li>
+          <li>
+            beim Betrieb auf einem lokalen Testsystem zusätzlich die dort
+            erzielten Punktestände
+          </li>
+        </ul>
+        <p>
+          Diese Angaben verlassen dein Gerät nicht. Sie werden weder an mich noch
+          an Dritte übermittelt. Es handelt sich nicht um Cookies. Da die
+          Speicherung ausschließlich dazu dient, den von dir ausdrücklich
+          gewünschten Dienst bereitzustellen, ist nach § 25 Abs. 2 Nr. 2 TDDG
+          keine Einwilligung erforderlich — ein Einwilligungsbanner entfällt
+          deshalb. Du kannst die Daten jederzeit über die Einstellungen deines
+          Browsers löschen.
+        </p>
+
+        <h2>7. Verschlüsselung</h2>
+        <p>
+          Diese Seite nutzt zur Übertragung eine TLS-Verschlüsselung. Du erkennst
+          das an der Adresszeile deines Browsers (<code>https://</code>).
+        </p>
+
+        <h2>8. Deine Rechte</h2>
+        <p>Dir stehen gegenüber dem Verantwortlichen die folgenden Rechte zu:</p>
+        <ul>
+          <li><strong>Auskunft</strong> über die zu dir gespeicherten Daten (Art. 15 DSGVO)</li>
+          <li><strong>Berichtigung</strong> unrichtiger Daten (Art. 16 DSGVO)</li>
+          <li><strong>Löschung</strong> (Art. 17 DSGVO)</li>
+          <li><strong>Einschränkung der Verarbeitung</strong> (Art. 18 DSGVO)</li>
+          <li><strong>Datenübertragbarkeit</strong> (Art. 20 DSGVO)</li>
+          <li>
+            <strong>Widerspruch</strong> gegen Verarbeitungen auf Grundlage
+            berechtigter Interessen (Art. 21 DSGVO)
+          </li>
+          <li>
+            <strong>Widerruf einer erteilten Einwilligung</strong> mit Wirkung für
+            die Zukunft (Art. 7 Abs. 3 DSGVO)
+          </li>
+        </ul>
+        <p>
+          Eine formlose E-Mail an
+          <a href="mailto:mail@tillalbert.de">mail@tillalbert.de</a> genügt.
+        </p>
+
+        <h2>9. Beschwerderecht bei der Aufsichtsbehörde</h2>
+        <p>
+          Unbeschadet anderweitiger Rechtsbehelfe steht dir ein Beschwerderecht
+          bei einer Datenschutz-Aufsichtsbehörde zu. Zuständig ist:
+        </p>
+        <p>
+          Unabhängiges Landeszentrum für Datenschutz Schleswig-Holstein (ULD)<br />
+          Holstenstraße 98<br />
+          24103 Kiel
+        </p>
+
+        <h2>10. Keine automatisierte Entscheidungsfindung</h2>
+        <p>
+          Es findet keine automatisierte Entscheidungsfindung einschließlich
+          Profiling im Sinne des Art. 22 DSGVO statt.
+        </p>
+
+        <h2>11. Änderungen</h2>
+        <p>
+          Diese Erklärung wird angepasst, sobald sich die eingesetzte Technik
+          ändert. Es gilt jeweils die auf dieser Seite abrufbare Fassung.
+        </p>
+
+        <p class="meta">Stand: Juli 2026</p>
+      </section>
+
+      <a class="back" href="index.html">&larr; Zurück zum Spiel</a>
+    </main>
+  </body>
 </html>
