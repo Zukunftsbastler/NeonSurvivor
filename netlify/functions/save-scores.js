@@ -82,6 +82,12 @@ function json(body, status = 200) {
 export default async (req, context) => {
   if (req.method !== 'POST') return json({ error: 'Nur POST.' }, 405);
 
+  // Ohne Datenbank nehmen wir nichts entgegen — und sagen das auch so, statt
+  // die Übertragung ins Leere laufen zu lassen.
+  if (!process.env.REDIS_URL) {
+    return json({ disabled: true, error: 'Die Bestenliste ist derzeit abgeschaltet.' }, 503);
+  }
+
   let body;
   try {
     body = await req.json();

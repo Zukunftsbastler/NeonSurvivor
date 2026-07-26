@@ -32,6 +32,8 @@ export function initScreens(handlers) {
     board: document.getElementById('leaderboardList'),
     submitBtn: document.getElementById('submitScoreBtn'),
     submitNote: document.getElementById('submitNote'),
+    submitRow: document.getElementById('submitRow'),
+    boardNote: document.getElementById('boardNote'),
   };
 
   el.nickname.value = loadNickname();
@@ -102,7 +104,14 @@ async function handleSubmit() {
 
 async function renderLeaderboard() {
   el.board.innerHTML = '<li class="board-empty">Lade Daten …</li>';
-  const entries = await fetchLeaderboard();
+  const { disabled, entries } = await fetchLeaderboard();
+
+  // Ist keine Datenbank angebunden, verschwindet der ganze Block. Ein
+  // Eintragsknopf, der garantiert fehlschlägt, wäre schlechter als keiner.
+  el.submitRow.classList.toggle('hidden', disabled);
+  el.board.classList.toggle('hidden', disabled);
+  el.boardNote.classList.toggle('hidden', !disabled);
+  if (disabled) return;
 
   if (!entries.length) {
     el.board.innerHTML = '<li class="board-empty">Noch keine Einträge.</li>';

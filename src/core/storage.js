@@ -86,19 +86,30 @@ export async function submitScore(name, score, durationMs) {
   }
 }
 
+/**
+ * Liefert `{ disabled, entries }`.
+ *
+ * `disabled` meldet, dass serverseitig keine Bestenliste angebunden ist. Die
+ * Oberfläche blendet dann Liste und Eintragsknopf aus, statt einen Knopf
+ * anzubieten, der sicher fehlschlägt.
+ */
 export async function fetchLeaderboard() {
   if (isLocalEnvironment()) {
-    return readLocal(LOCAL_SCORES, [])
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
+    return {
+      disabled: false,
+      entries: readLocal(LOCAL_SCORES, []).sort((a, b) => b.score - a.score).slice(0, 10),
+    };
   }
 
   try {
     const res = await fetch('/.netlify/functions/get-scores');
-    if (!res.ok) return [];
+    if (!res.ok) return { disabled: true, entries: [] };
     const data = await res.json();
-    return Array.isArray(data) ? data : [];
+
+    // Ältere Auslieferungen antworteten mit einem nackten Array.
+    if (Array.isArray(data)) return { disabled: false, entries: data };
+    return { disabled: !!data.disabled, entries: Array.isArray(data.entries) ? data.entries : [] };
   } catch {
-    return [];
+    return { disabled: true, entries: [] };
   }
 }

@@ -169,12 +169,24 @@ Netlify, konfiguriert in `netlify.toml`:
 
 | Variable | Zweck |
 |---|---|
-| `REDIS_URL` | Verbindung zur Bestenliste (Pflicht) |
+| `REDIS_URL` | Verbindung zur Bestenliste — **nicht gesetzt = abgeschaltet** |
 | `RATE_SALT` | Salz für die IP-Hashes des Rate-Limits (empfohlen) |
 
-Ohne `REDIS_URL` läuft das Spiel weiter; die Bestenliste bleibt dann leer und
-Einträge werden mit einer Meldung abgelehnt. Lokal (`localhost` oder `file:`)
-wird ohnehin nur im Browser gespeichert.
+**Die Bestenliste ist derzeit abgeschaltet**, weil keine Datenbank angebunden
+ist. Ohne `REDIS_URL` meldet `get-scores` `{ disabled: true }`, der
+Abschlussbildschirm blendet Liste und Eintragsknopf aus und zeigt stattdessen
+einen Hinweis, und `save-scores` nimmt gar nichts entgegen.
+
+Zum Wiedereinschalten genügt es, `REDIS_URL` in den Netlify-Umgebungsvariablen
+zu setzen — keine Codeänderung, kein neuer Build nötig.
+
+> **Dann aber zwingend zuerst:** Abschnitt 4 und 5 der Datenschutzerklärung in
+> [`impressum.html`](impressum.html) wieder mit Anbieter, Firmensitz,
+> Serverstandort und Speicherdauer füllen. Sie beschreiben aktuell den
+> abgeschalteten Zustand.
+
+Lokal (`localhost` oder `file:`) wird ohnehin nur im Browser gespeichert, die
+Bestenliste funktioniert dort also unabhängig davon.
 
 ### Bestenliste
 

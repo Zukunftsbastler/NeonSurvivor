@@ -98,16 +98,6 @@
       dt { color: var(--chrome); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.7rem; }
       dd { margin: 0.1rem 0 0; }
 
-      .todo {
-        border: 1px dashed #ffb000;
-        background: rgba(255, 176, 0, 0.08);
-        color: #ffd98a;
-        padding: 0.8rem 1rem;
-        margin: 1rem 0;
-        font-size: 0.82rem;
-      }
-
-      .todo strong { color: #ffb000; }
     </style>
   </head>
 
@@ -206,8 +196,12 @@
             was das Spiel braucht, liegt auf demselben Server wie die Seite selbst.
           </li>
           <li>
-            Ein Eintrag in die Bestenliste erfolgt <strong>nur, wenn du ihn
-            ausdrücklich auslöst</strong>.
+            Die Bestenliste ist <strong>derzeit abgeschaltet</strong>; es werden
+            keine Spielstände übertragen oder gespeichert.
+          </li>
+          <li>
+            Damit verlässt <strong>keine einzige Angabe zu deinem Spiel</strong>
+            dein Gerät.
           </li>
         </ul>
 
@@ -246,65 +240,29 @@
           Logdaten durch den Anbieter dieses Spiels findet nicht statt.
         </p>
 
-        <h2>4. Bestenliste</h2>
+        <h2>4. Bestenliste (derzeit abgeschaltet)</h2>
         <p>
-          Das Spiel bietet am Ende einer Fahrt an, den erreichten Punktestand in
-          eine öffentlich sichtbare Bestenliste einzutragen. <strong>Dieser
-          Schritt ist freiwillig</strong> und geschieht ausschließlich, wenn du
-          die Schaltfläche „In die Bestenliste eintragen“ betätigst. Ohne diese
-          Betätigung verlässt kein Spielstand dein Gerät.
-        </p>
-        <p>Dabei werden übertragen und gespeichert:</p>
-        <ul>
-          <li>das von dir frei gewählte Rufzeichen (maximal 12 Zeichen)</li>
-          <li>der erreichte Punktestand</li>
-          <li>die Dauer der Fahrt (zur Erkennung manipulierter Einträge)</li>
-          <li>der Zeitpunkt des Eintrags</li>
-        </ul>
-        <p>
-          <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO
-          (Einwilligung). Die Einwilligung erteilst du durch das Betätigen der
-          Schaltfläche. Du kannst sie jederzeit mit Wirkung für die Zukunft
-          widerrufen; eine formlose E-Mail genügt. Die Rechtmäßigkeit der bis zum
-          Widerruf erfolgten Verarbeitung bleibt davon unberührt.
+          <strong>Die Bestenliste ist zurzeit außer Betrieb.</strong> Es besteht
+          keine Anbindung an eine Datenbank, es wird nichts übertragen und nichts
+          gespeichert. Am Ende einer Fahrt siehst du dein Ergebnis, danach ist es
+          fort — es verlässt dein Gerät zu keinem Zeitpunkt.
         </p>
         <p>
-          <strong>Bitte gib kein Rufzeichen an, das dich identifiziert.</strong>
-          Ein frei erfundenes Kürzel genügt vollkommen. Trägst du dennoch einen
-          Klarnamen ein, veröffentlichst du diesen selbst — auf Wunsch lösche ich
-          den Eintrag jederzeit.
-        </p>
-        <p class="meta">
-          Speicherdauer: Es werden höchstens die 100 besten Einträge vorgehalten;
-          darunterliegende Einträge werden automatisch entfernt. Auf Anfrage
-          lösche ich jeden Eintrag umgehend.
+          Sollte die Bestenliste später wieder in Betrieb gehen, wird sie
+          ausschließlich auf ausdrückliche Betätigung einer Schaltfläche hin
+          etwas übertragen (Einwilligung nach Art. 6 Abs. 1 lit. a DSGVO). Diese
+          Erklärung wird dann <em>vor</em> der Wiederinbetriebnahme um die
+          Angaben zum eingesetzten Anbieter, dessen Sitz, den Serverstandort und
+          die Speicherdauer ergänzt.
         </p>
 
-        <div class="todo">
-          <strong>Vor dem Deployment ausfüllen:</strong> Die Bestenliste liegt in
-          einer Redis-Datenbank, die über die Umgebungsvariable
-          <code>REDIS_URL</code> angebunden ist. Trage hier den tatsächlichen
-          Anbieter, dessen Firmensitz und den Serverstandort ein — zum Beispiel:
-          „Die Daten werden bei der <em>[Anbieter, Anschrift]</em> auf Servern in
-          <em>[Standort]</em> gespeichert. Es besteht ein Auftragsverarbeitungs-
-          vertrag nach Art. 28 DSGVO.“ Liegt der Anbieter außerhalb der EU/des
-          EWR, ergänze bitte die Garantien nach Art. 44 ff. DSGVO analog zum
-          Abschnitt Hosting. Diese Angabe ist Pflicht — bitte nicht
-          weglassen und diesen Kasten anschließend entfernen.
-        </div>
-
-        <h2>5. Schutz vor Missbrauch der Bestenliste</h2>
+        <h2>5. Schutz vor Missbrauch</h2>
         <p>
-          Damit die Bestenliste nicht automatisiert geflutet werden kann, wird
-          beim Eintragen die Anzahl der Anfragen kurzzeitig begrenzt. Dazu wird
-          aus der IP-Adresse ein nicht rückrechenbarer Hashwert gebildet und als
-          Zähler gespeichert. <strong>Die IP-Adresse selbst wird dabei nicht
-          gespeichert</strong>, und der Zähler wird nach 60 Sekunden automatisch
-          gelöscht.
-        </p>
-        <p>
-          <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO. Das
-          berechtigte Interesse besteht in der Abwehr von Missbrauch.
+          Solange die Bestenliste abgeschaltet ist, findet auch keine
+          Missbrauchsabwehr auf Anwendungsebene statt: Es werden keine Zähler
+          geführt und keine Kennungen aus IP-Adressen gebildet. Es bleibt allein
+          bei den technisch notwendigen Server-Logfiles des Hosters, siehe
+          Abschnitt&nbsp;3.
         </p>
 
         <h2>6. Lokale Speicherung auf deinem Gerät</h2>
