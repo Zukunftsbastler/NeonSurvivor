@@ -1,0 +1,831 @@
+/**
+ * Vollständig eigenes CSS.
+ *
+ * Der Prototyp lud den Tailwind-CDN — das ist der Laufzeit-Compiler, rund
+ * 100 KB JavaScript, der bei jedem Aufruf im Browser CSS erzeugt und
+ * ausdrücklich nicht für den Produktivbetrieb gedacht ist. Dazu kam Orbitron
+ * über Google Fonts als blockierender `@import`.
+ *
+ * Beides ist ersetzt: kein externer Request, damit schnellerer Start auf
+ * Mobilfunk, kein Aufblitzen ungestylter Inhalte — und keine
+ * Drittlandübermittlung, die in der Datenschutzerklärung stehen müsste.
+ */
+
+:root {
+  --screen: #02070a;
+  --grid: #0c2a24;
+  --system: #3dfb87;
+  --contact: #ffb000;
+  --salvage: #d8fff0;
+  --alarm: #ff3b30;
+  --chrome: #5f8f7c;
+
+  --font: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
+    'Liberation Mono', monospace;
+
+  --panel: rgba(2, 12, 10, 0.92);
+  --hairline: rgba(61, 251, 135, 0.24);
+
+  /* Sicherheitsabstände für Notch und Gestenleiste. */
+  --pad-top: max(0.75rem, env(safe-area-inset-top));
+  --pad-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  --pad-left: max(0.75rem, env(safe-area-inset-left));
+  --pad-right: max(0.75rem, env(safe-area-inset-right));
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--screen);
+  color: var(--salvage);
+  font-family: var(--font);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+}
+
+canvas {
+  display: block;
+  position: fixed;
+  inset: 0;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* --- HUD ---------------------------------------------------------------- */
+
+#uiLayer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--pad-top) var(--pad-right) var(--pad-bottom) var(--pad-left);
+}
+
+#hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.hud-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1 1 auto;
+  max-width: min(22rem, 46%);
+}
+
+.bar {
+  position: relative;
+  width: 100%;
+  border: 1px solid var(--hairline);
+  background: rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.bar-hull {
+  height: 0.9rem;
+}
+
+.bar-xp {
+  height: 0.35rem;
+}
+
+.bar-fill {
+  height: 100%;
+  width: 100%;
+  transition: width 0.18s linear;
+}
+
+#hullBar {
+  background: var(--system);
+}
+
+#hullBar.is-critical {
+  background: var(--alarm);
+  animation: hull-pulse 0.9s ease-in-out infinite;
+}
+
+#xpBar {
+  background: var(--salvage);
+  width: 0;
+}
+
+/* Quittiert einen angekommenen XP-Funken. */
+#xpBar.is-pulsing {
+  animation: xp-arrive 260ms ease-out;
+}
+
+@keyframes xp-arrive {
+  0% { box-shadow: 0 0 0 0 rgba(216, 255, 240, 0.9); filter: brightness(2.6); }
+  100% { box-shadow: 0 0 10px 2px rgba(216, 255, 240, 0); filter: brightness(1); }
+}
+
+@keyframes hull-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.bar-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  /* Dunkel auf dem gefüllten Teil, mit Schattenkontur für den leeren.
+     Vorher stand hier mix-blend-mode: difference — das erzeugte ein Magenta,
+     das in der Palette gar nicht vorkommt. */
+  color: var(--screen);
+  text-shadow: 0 0 3px rgba(2, 7, 10, 0.9), 0 0 6px rgba(2, 7, 10, 0.7);
+}
+
+.hud-meta {
+  display: flex;
+  gap: 0.6rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  color: var(--chrome);
+  text-transform: uppercase;
+}
+
+.hud-meta strong {
+  color: var(--salvage);
+  font-weight: 700;
+}
+
+/* Sitzt zwischen den beiden HUD-Blöcken statt absolut über ihnen — vorher
+   lag die Taste auf der Rumpfleiste. Muss über #controls liegen, sonst fängt
+   die bildschirmfüllende Steuerfläche den Tap ab. */
+#pauseBtn {
+  flex: 0 0 auto;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 1px solid var(--hairline);
+  background: rgba(2, 12, 10, 0.75);
+  color: var(--chrome);
+  font-family: var(--font);
+  font-size: 1rem;
+  cursor: pointer;
+  pointer-events: auto;
+  position: relative;
+  z-index: 6;
+}
+
+.hud-right {
+  text-align: right;
+  flex: 0 0 auto;
+}
+
+.hud-score {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--system);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-time {
+  font-size: 0.8rem;
+  color: var(--chrome);
+  font-variant-numeric: tabular-nums;
+}
+
+#weaponStrip,
+#pactStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.1rem;
+}
+
+.weapon-chip,
+.pact-chip {
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+  padding: 0.12rem 0.35rem;
+  border: 1px solid var(--hairline);
+  color: var(--tint, var(--chrome));
+  white-space: nowrap;
+}
+
+.pact-chip {
+  border-color: rgba(255, 176, 0, 0.45);
+  color: var(--contact);
+}
+
+/* --- Steuerung ---------------------------------------------------------- */
+
+#controls {
+  position: fixed;
+  inset: 0;
+  pointer-events: auto;
+  z-index: 5;
+}
+
+#dashBtn {
+  position: absolute;
+  right: calc(var(--pad-right) + 0.75rem);
+  bottom: calc(var(--pad-bottom) + 1.5rem);
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 50%;
+  border: 2px solid var(--system);
+  background: radial-gradient(circle, rgba(61, 251, 135, 0.18), rgba(2, 12, 10, 0.75));
+  color: var(--system);
+  font-family: var(--font);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 0.08s ease-out;
+  touch-action: manipulation;
+}
+
+#dashBtn:active {
+  transform: scale(0.94);
+}
+
+#dashBtn.is-cooling {
+  border-color: var(--chrome);
+  color: var(--chrome);
+  opacity: 0.55;
+}
+
+/* Der Ring füllt sich als Cooldown-Anzeige — genauer als ein Ein/Aus-Zustand. */
+#dashRing {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: conic-gradient(var(--system) var(--fill, 100%), transparent 0);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.joystick-base,
+.joystick-knob {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.joystick-base {
+  width: 6.25rem;
+  height: 6.25rem;
+  border: 2px solid rgba(61, 251, 135, 0.28);
+}
+
+.joystick-knob {
+  width: 3.1rem;
+  height: 3.1rem;
+  background: rgba(61, 251, 135, 0.4);
+}
+
+/* --- Overlays ----------------------------------------------------------- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: calc(var(--pad-top) + 0.5rem) 1rem calc(var(--pad-bottom) + 0.5rem);
+  background: rgba(1, 5, 4, 0.94);
+  /* Auf kleinen Geräten muss der Inhalt scrollen können — im Prototyp konnte
+     die dritte Karte unerreichbar werden, weil der Body nicht scrollte. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  text-align: center;
+}
+
+.overlay--top {
+  z-index: 50;
+}
+
+.overlay h1,
+.overlay h2 {
+  margin: 0;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.overlay h1 {
+  font-size: clamp(2rem, 12vw, 3.5rem);
+  font-weight: 700;
+  color: var(--system);
+}
+
+.overlay h2 {
+  font-size: clamp(1.2rem, 6vw, 1.8rem);
+  color: var(--system);
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.24em;
+  color: var(--chrome);
+  text-transform: uppercase;
+}
+
+.btn {
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.85rem 1.6rem;
+  border: 1px solid var(--system);
+  background: rgba(61, 251, 135, 0.12);
+  color: var(--system);
+  cursor: pointer;
+  /* Mindestgröße für sichere Treffer mit dem Daumen. */
+  min-height: 2.75rem;
+  transition: background 0.12s ease-out;
+}
+
+.btn:active {
+  background: rgba(61, 251, 135, 0.26);
+}
+
+.btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.btn--ghost {
+  border-color: var(--hairline);
+  background: transparent;
+  color: var(--chrome);
+}
+
+.btn--primary {
+  background: var(--system);
+  color: var(--screen);
+}
+
+.field {
+  width: min(18rem, 100%);
+  padding: 0.8rem;
+  text-align: center;
+  font-family: var(--font);
+  font-size: 1.05rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--salvage);
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--hairline);
+}
+
+.field:focus {
+  outline: none;
+  border-color: var(--system);
+}
+
+.note {
+  font-size: 0.68rem;
+  line-height: 1.5;
+  color: var(--chrome);
+  max-width: 30rem;
+}
+
+.link {
+  color: var(--chrome);
+  font-size: 0.68rem;
+  text-decoration: underline;
+}
+
+.link:hover {
+  color: var(--system);
+}
+
+/* --- Ausrüstungskarten -------------------------------------------------- */
+
+#cardsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 60rem;
+}
+
+.boon-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  /* Deutlich schlanker als im Prototyp: Dort standen drei Karten mit je 1,5rem
+     Innenabstand untereinander und sprengten kleine Displays. */
+  padding: 0.75rem 0.9rem;
+  text-align: left;
+  font-family: var(--font);
+  color: var(--salvage);
+  background: rgba(3, 14, 12, 0.95);
+  border: 1px solid var(--rarity, var(--chrome));
+  box-shadow: 0 0 12px -4px var(--rarity-glow, transparent);
+  cursor: pointer;
+  transition: transform 0.12s ease-out, background 0.12s ease-out;
+}
+
+.boon-card:active {
+  transform: scale(0.985);
+  background: rgba(8, 26, 22, 0.98);
+}
+
+.boon-card.is-banishing {
+  border-style: dashed;
+  border-color: var(--alarm);
+}
+
+.boon-rarity {
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--rarity, var(--chrome));
+}
+
+.boon-name {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.boon-value {
+  font-size: 0.9rem;
+  color: var(--system);
+}
+
+.boon-detail {
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: var(--chrome);
+}
+
+/* Kartenauswahl: die gewählte Karte quittiert, die übrigen treten zurück.
+   Die Dauer muss zu CHOICE_ANIM_MS in ui/cards.js passen. */
+.boon-card.is-chosen,
+.pact-card.is-chosen {
+  animation: card-chosen 320ms cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+  z-index: 2;
+}
+
+.boon-card.is-dismissed,
+.pact-card.is-dismissed {
+  animation: card-dismissed 320ms ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes card-chosen {
+  0% { transform: scale(1); opacity: 1; }
+  30% { transform: scale(1.06); filter: brightness(2.4); opacity: 1; }
+  /* Deckkraft bis hierher ausdrücklich auf 1 halten: Ohne diesen Halt
+     interpoliert der Browser sie über die volle Dauer, und die gewählte
+     Karte war schon nach 60 ms halb verschwunden. */
+  65% { transform: scale(1.04); filter: brightness(1.8); opacity: 1; }
+  100% { transform: scale(1.02); filter: brightness(1.2); opacity: 0; }
+}
+
+@keyframes card-dismissed {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.92) translateY(10px); opacity: 0; }
+}
+
+.rarity-mahlstrom {
+  animation: mahlstrom 2.4s linear infinite;
+}
+
+@keyframes mahlstrom {
+  0%,
+  100% {
+    border-color: #ffffff;
+    box-shadow: 0 0 18px -2px rgba(255, 255, 255, 0.8);
+  }
+  50% {
+    border-color: var(--system);
+    box-shadow: 0 0 22px -2px var(--system);
+  }
+}
+
+.card-tools {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.card-tools .btn {
+  padding: 0.6rem 1rem;
+  font-size: 0.7rem;
+}
+
+#banishHint {
+  font-size: 0.65rem;
+  color: var(--alarm);
+  min-height: 1rem;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+#banishHint.is-visible {
+  opacity: 1;
+}
+
+/* --- Wagnisse ----------------------------------------------------------- */
+
+#pactList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 60rem;
+}
+
+.pact-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.8rem 0.9rem;
+  text-align: left;
+  font-family: var(--font);
+  background: rgba(14, 9, 2, 0.95);
+  border: 1px solid rgba(255, 176, 0, 0.5);
+  color: var(--salvage);
+  cursor: pointer;
+}
+
+.pact-card:active {
+  transform: scale(0.985);
+}
+
+.pact-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--contact);
+  letter-spacing: 0.06em;
+}
+
+.pact-cost {
+  font-size: 0.72rem;
+  color: var(--alarm);
+}
+
+.pact-gain {
+  font-size: 0.72rem;
+  color: var(--system);
+}
+
+/* --- Einstellungen ------------------------------------------------------ */
+
+.settings {
+  width: min(30rem, 100%);
+  border: 1px solid var(--hairline);
+  background: rgba(3, 14, 12, 0.6);
+  text-align: left;
+}
+
+.settings > summary {
+  padding: 0.7rem 0.9rem;
+  cursor: pointer;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--system);
+  list-style: none;
+}
+
+.settings > summary::-webkit-details-marker { display: none; }
+
+.settings > summary::after {
+  content: ' ▾';
+  color: var(--chrome);
+}
+
+.settings[open] > summary::after { content: ' ▴'; }
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.4rem;
+  padding: 0 0.7rem 0.7rem;
+}
+
+/* Auf dem Pausenbildschirm steht das Raster ohne Klapprahmen. */
+#pauseScreen .settings-grid {
+  width: min(30rem, 100%);
+  padding: 0;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.6rem;
+  font-family: var(--font);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--hairline);
+  color: var(--salvage);
+  cursor: pointer;
+  min-height: 2.4rem;
+  text-align: left;
+}
+
+.toggle-state {
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid currentColor;
+  color: var(--system);
+}
+
+.toggle[aria-pressed='false'] {
+  color: var(--chrome);
+  border-color: rgba(95, 143, 124, 0.3);
+}
+
+.toggle[aria-pressed='false'] .toggle-state {
+  color: var(--chrome);
+  opacity: 0.75;
+}
+
+/* --- Abschluss ---------------------------------------------------------- */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 1.5rem;
+  font-size: 0.72rem;
+  color: var(--chrome);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.stat-grid strong {
+  display: block;
+  font-size: 1.05rem;
+  color: var(--salvage);
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.final-score {
+  font-size: clamp(2.2rem, 14vw, 3.4rem);
+  font-weight: 700;
+  color: var(--system);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.board {
+  width: min(26rem, 100%);
+  max-height: 32vh;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0.4rem;
+  border: 1px solid var(--hairline);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.board-row {
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  gap: 0.5rem;
+  padding: 0.3rem 0.2rem;
+  font-size: 0.78rem;
+  border-bottom: 1px solid rgba(95, 143, 124, 0.18);
+}
+
+.board-row:last-child {
+  border-bottom: none;
+}
+
+.board-row.is-first .board-name,
+.board-row.is-first .board-score {
+  color: var(--system);
+}
+
+.board-rank {
+  color: var(--chrome);
+  font-variant-numeric: tabular-nums;
+}
+
+.board-name {
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-score {
+  font-variant-numeric: tabular-nums;
+  color: var(--salvage);
+}
+
+.board-empty {
+  padding: 0.6rem;
+  font-size: 0.72rem;
+  color: var(--chrome);
+}
+
+.submit-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#submitNote {
+  font-size: 0.65rem;
+  color: var(--chrome);
+  min-height: 1rem;
+}
+
+/* --- Größere Displays --------------------------------------------------- */
+
+@media (min-width: 40rem) {
+  #cardsContainer,
+  #pactList {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .boon-card,
+  .pact-card {
+    flex: 1 1 0;
+  }
+
+  .boon-card {
+    padding: 1.1rem;
+  }
+
+  .boon-card:hover {
+    transform: translateY(-4px);
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Niedrige Displays im Querformat: alles enger, damit nichts abgeschnitten wird. */
+@media (max-height: 26rem) {
+  .overlay {
+    gap: 0.5rem;
+    justify-content: flex-start;
+  }
+
+  .overlay h1 {
+    font-size: 1.6rem;
+  }
+
+  .boon-card {
+    padding: 0.5rem 0.7rem;
+  }
+
+  .board {
+    max-height: 24vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

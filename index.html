@@ -1,1151 +1,166 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Survivor Roguelite</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
+  <head>
+    <meta charset="utf-8" />
+    <!-- Kein `user-scalable=no`: Das Sperren des Zooms ist ein
+         Barrierefreiheitsproblem. `touch-action: none` auf dem Body reicht,
+         um Wischgesten aus dem Spiel herauszuhalten. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#02070a" />
+    <meta name="description" content="Seegang — ein Radarschirm-Roguelite fürs Handy. Halte die Hafenwache, solange du kannst." />
+    <meta name="referrer" content="no-referrer" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2302070a'/%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%230c2a24' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='5' fill='none' stroke='%230c2a24' stroke-width='2'/%3E%3Cpath d='M16 16 L27 12 A11 11 0 0 1 27 20 Z' fill='%233dfb87' opacity='.55'/%3E%3Ccircle cx='23' cy='10' r='2.5' fill='%23ffb000'/%3E%3C/svg%3E"
+    />
+    <title>Seegang — Radarwache</title>
+  </head>
 
-    <style>
-        /* Basis Reset & Fonts */
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
-
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #050505;
-            font-family: 'Orbitron', sans-serif;
-            touch-action: none;
-            user-select: none;
-        }
-
-        canvas {
-            display: block;
-        }
-
-        /* Neon Glow Utility Classes */
-        .text-neon-blue { color: #00f3ff; text-shadow: 0 0 10px #00f3ff; }
-        .text-neon-pink { color: #ff00ff; text-shadow: 0 0 10px #ff00ff; }
-        
-        /* Karten Styles */
-        .boon-card {
-            transition: all 0.2s ease-out;
-            border-width: 2px;
-            border-style: solid;
-            background: rgba(10, 10, 15, 0.95);
-        }
-        .boon-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            z-index: 10;
-        }
-        .boon-card:active {
-            transform: scale(0.98);
-        }
-
-        /* Rarity Animation für High Tier */
-        @keyframes rainbow-border {
-            0% { border-color: #ff0000; box-shadow: 0 0 15px #ff0000; }
-            20% { border-color: #ffff00; box-shadow: 0 0 15px #ffff00; }
-            40% { border-color: #00ff00; box-shadow: 0 0 15px #00ff00; }
-            60% { border-color: #00ffff; box-shadow: 0 0 15px #00ffff; }
-            80% { border-color: #ff00ff; box-shadow: 0 0 15px #ff00ff; }
-            100% { border-color: #ff0000; box-shadow: 0 0 15px #ff0000; }
-        }
-        .rarity-transcendent {
-            animation: rainbow-border 3s linear infinite;
-        }
-
-        /* Joystick Styles */
-        #joystick-zone {
-            position: absolute;
-            bottom: 50px;
-            left: 50px;
-            width: 150px;
-            height: 150px;
-            z-index: 10;
-        }
-        @media (min-width: 1024px) {
-            #joystick-zone { opacity: 0.3; }
-        }
-    </style>
-</head>
-<body class="text-white">
-
+  <body>
     <canvas id="gameCanvas"></canvas>
 
-    <div id="uiLayer" class="absolute inset-0 pointer-events-none flex flex-col justify-between p-4">
-        
-        <div id="hud" class="flex justify-between items-start hidden">
-            <div class="flex flex-col gap-2 w-1/3">
-                <div class="w-full bg-gray-800 h-4 rounded border border-gray-600 relative overflow-hidden">
-                    <div id="hpBar" class="h-full bg-red-500 shadow-[0_0_10px_red] transition-all duration-200" style="width: 100%;"></div>
-                </div>
-                <div class="w-full bg-gray-800 h-2 rounded border border-gray-600 relative overflow-hidden">
-                    <div id="xpBar" class="h-full bg-yellow-400 shadow-[0_0_10px_yellow] transition-all duration-200" style="width: 0%;"></div>
-                </div>
-                <div class="text-xs text-yellow-200">LVL <span id="levelDisplay">1</span></div>
-            </div>
-            
-            <div class="text-right">
-                <div class="text-2xl font-bold text-neon-blue" id="scoreDisplay">0</div>
-                <div class="text-sm text-gray-400" id="timeDisplay">00:00</div>
-            </div>
+    <div id="uiLayer">
+      <div id="hud" class="hidden">
+        <div class="hud-left">
+          <div class="bar bar-hull">
+            <div id="hullBar" class="bar-fill"></div>
+            <span id="hullText" class="bar-label">100/100</span>
+          </div>
+          <div class="bar bar-xp">
+            <div id="xpBar" class="bar-fill"></div>
+          </div>
+          <div class="hud-meta">
+            <span>Stufe <strong id="levelValue">1</strong></span>
+            <span>Auswurf <strong id="rerollCount">3</strong></span>
+          </div>
+          <div id="weaponStrip"></div>
+          <div id="pactStrip"></div>
         </div>
 
-        <div id="controls" class="w-full h-full absolute top-0 left-0 pointer-events-auto hidden">
-            <button id="dashBtn" class="absolute bottom-12 right-8 w-24 h-24 rounded-full border-4 border-neon-pink bg-pink-900/50 text-neon-pink font-bold flex items-center justify-center active:scale-95 transition-transform touch-manipulation">
-                DASH
-                <div id="dashCdOverlay" class="absolute inset-0 bg-black/80 rounded-full flex items-center justify-center text-white hidden">CD</div>
-            </button>
+        <button id="pauseBtn" type="button" aria-label="Pause">II</button>
+
+        <div class="hud-right">
+          <div id="scoreValue" class="hud-score">0</div>
+          <div id="timeValue" class="hud-time">00:00</div>
         </div>
+      </div>
+
+      <div></div>
     </div>
 
-    <div id="startScreen" class="absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-50 pointer-events-auto">
-        <h1 class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600 mb-2 filter drop-shadow-[0_0_10px_rgba(0,255,255,0.8)]">NEON SURVIVOR</h1>
-        <p class="text-gray-400 mb-8">Bullet Hell Roguelite Prototype</p>
-        
-        <input type="text" id="nicknameInput" placeholder="Dein Nickname" maxlength="12" class="bg-gray-800 border-2 border-neon-blue text-white text-center text-xl p-3 rounded mb-4 focus:outline-none focus:shadow-[0_0_20px_#00f3ff] transition-all w-64 uppercase">
-        
-        <button id="startBtn" class="px-8 py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded shadow-[0_0_15px_cyan] transition-all transform hover:scale-105">
-            START RUN
+    <div id="controls" class="hidden">
+      <button id="dashBtn" type="button" aria-label="Notmanöver">
+        <span id="dashRing"></span>
+        MANÖVER
+      </button>
+    </div>
+
+    <!-- Startbildschirm -->
+    <section id="startScreen" class="overlay overlay--top">
+      <h1 id="gameTitle">SEEGANG</h1>
+      <p id="gameSubtitle" class="subtitle">Radarwache — Hafenrevier</p>
+
+      <p class="note">
+        Du bist ein Signal auf dem Schirm der Hafenwache. Fremde Kontakte laufen auf.
+        Die Bordsysteme feuern selbsttätig auf das nächste Ziel — deine Aufgabe ist
+        die Fahrt.
+      </p>
+
+      <label class="note" for="nicknameInput">Rufzeichen</label>
+      <input
+        id="nicknameInput"
+        class="field"
+        type="text"
+        maxlength="12"
+        autocomplete="off"
+        autocapitalize="characters"
+        spellcheck="false"
+        placeholder="OHNE KLARNAMEN"
+      />
+
+      <button id="startBtn" class="btn btn--primary" type="button">Ablegen</button>
+
+      <p class="note">
+        Steuerung: Daumen auf der linken Bildschirmhälfte lenkt · Taste rechts für das
+        Notmanöver · am Rechner WASD und Leertaste, Pause mit Esc.
+      </p>
+
+      <details class="settings">
+        <summary>Einstellungen</summary>
+        <div class="settings-grid"></div>
+        <p class="note">
+          Bildruckeln, Blitze und Trefferstopp lassen sich einzeln abschalten.
+          Meldet dein System „reduzierte Bewegung“, sind sie von vornherein aus.
+        </p>
+      </details>
+
+      <a class="link" href="impressum.html">Impressum &amp; Datenschutz</a>
+    </section>
+
+    <!-- Ausrüstung -->
+    <section id="levelUpScreen" class="overlay hidden">
+      <h2>Neue Ausrüstung</h2>
+      <div id="cardsContainer"></div>
+      <p id="banishHint"></p>
+      <div class="card-tools">
+        <button id="rerollBtn" class="btn btn--ghost" type="button">
+          Neu auswerfen (<span class="count">3</span>)
         </button>
-        <p class="mt-4 text-xs text-gray-500">Steuerung: Virtual Stick (Links) + Dash (Rechts) oder WASD + Leertaste</p>
-        
-        <a href="impressum.html" class="absolute bottom-4 text-xs text-gray-600 hover:text-neon-blue transition-colors underline">Impressum & Datenschutz</a>
-    </div>
+        <button id="banishBtn" class="btn btn--ghost" type="button">Typ streichen</button>
+      </div>
+    </section>
 
-    <div id="levelUpScreen" class="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-40 hidden pointer-events-auto">
-        <h2 class="text-4xl text-yellow-400 font-bold mb-8 drop-shadow-[0_0_10px_yellow]">LEVEL UP!</h2>
-        <div id="cardsContainer" class="flex flex-col md:flex-row gap-4 w-full max-w-5xl px-4 justify-center items-stretch">
-            </div>
-    </div>
+    <!-- Wagnisse -->
+    <section id="pactScreen" class="overlay hidden">
+      <h2>Wagnis</h2>
+      <p class="note">
+        Die See ist ruhig geworden. Wer mehr will, muss mehr riskieren — jedes Wagnis
+        gilt für den Rest der Fahrt.
+      </p>
+      <div id="pactList"></div>
+      <button id="pactSkipBtn" class="btn btn--ghost" type="button">Kurs halten</button>
+    </section>
 
-    <div id="gameOverScreen" class="absolute inset-0 bg-red-900/90 flex flex-col items-center justify-center z-50 hidden pointer-events-auto">
-        <h2 class="text-5xl text-white font-bold mb-2">GAME OVER</h2>
-        <div class="text-2xl text-gray-300 mb-6">Score: <span id="finalScore" class="text-white font-bold">0</span></div>
-        
-        <div class="bg-black/50 p-4 rounded-lg w-full max-w-md h-64 overflow-y-auto mb-6 border border-gray-600">
-            <h3 class="text-center text-neon-blue mb-2 sticky top-0 bg-black/80 py-1">LEADERBOARD</h3>
-            <ul id="leaderboardList" class="text-sm space-y-2">
-                <li class="text-center text-gray-500">Lade Daten...</li>
-            </ul>
-        </div>
+    <!-- Pause -->
+    <section id="pauseScreen" class="overlay overlay--top hidden">
+      <h2>Maschine gestoppt</h2>
+      <button id="resumeBtn" class="btn btn--primary" type="button">Weiterfahren</button>
+      <div class="settings-grid"></div>
+      <button id="quitBtn" class="btn btn--ghost" type="button">Fahrt abbrechen</button>
+    </section>
 
-        <button id="restartBtn" class="px-8 py-3 bg-white text-black font-bold rounded hover:bg-gray-200 transition-all">
-            NEUER VERSUCH
+    <!-- Abschluss -->
+    <section id="gameOverScreen" class="overlay overlay--top hidden">
+      <h2>Rumpf verloren</h2>
+      <div id="finalScore" class="final-score">0</div>
+
+      <div class="stat-grid">
+        <span>Fahrtzeit<strong id="finalTime">00:00</strong></span>
+        <span>Stufe<strong id="finalLevel">1</strong></span>
+        <span>Kontakte<strong id="finalKills">0</strong></span>
+        <span>Wagnisse<strong id="finalPacts">0</strong></span>
+      </div>
+
+      <ul id="leaderboardList" class="board">
+        <li class="board-empty">Noch keine Einträge.</li>
+      </ul>
+
+      <div class="submit-row">
+        <button id="submitScoreBtn" class="btn" type="button">
+          In die Bestenliste eintragen
         </button>
-    </div>
-
-    <script>
-        /**
-         * ------------------------------------------------------------------
-         * CONFIG & UTILS
-         * ------------------------------------------------------------------
-         */
-
-        // Local Storage Helpers
-        function getStorage(key, def) {
-            const val = localStorage.getItem(key);
-            return val ? JSON.parse(val) : def;
-        }
-        function setStorage(key, val) {
-            localStorage.setItem(key, JSON.stringify(val));
-        }
-
-        async function saveHighscore(name, score) {
-            // Validierung
-            if (typeof name !== 'string') name = "Unknown";
-            name = name.trim().slice(0, 12).replace(/[<>]/g, ""); // Basic Sanitization
-            if (!name) name = "Anon";
-            
-            if (typeof score !== 'number' || isNaN(score) || score < 0 || score > 10000000) {
-                console.warn("Ungültiger Score erkannt:", score);
-                return;
-            }
-
-            // Fallback: Wenn wir lokal testen, speichern wir weiterhin im Browser
-            if (window.location.hostname === 'localhost' || window.location.protocol === 'file:') {
-                console.log("Localhost erkannt: Speichere Score lokal.");
-                const scores = getStorage('neon_survivor_scores', []);
-                scores.push({ name, score, timestamp: Date.now() });
-                setStorage('neon_survivor_scores', scores);
-                return;
-            }
-
-            // Echte Netlify Funktion aufrufen
-            try {
-                await fetch('/.netlify/functions/save-scores', {
-                    method: 'POST',
-                    body: JSON.stringify({ name, score }),
-                    headers: { 'Content-Type': 'application/json' }
-                });
-            } catch (err) {
-                console.error("Fehler beim Senden des Highscores:", err);
-            }
-        }
-
-        async function fetchLeaderboard() {
-            // Fallback: Wenn wir lokal testen, laden wir aus dem Browser
-            if (window.location.hostname === 'localhost' || window.location.protocol === 'file:') {
-                const scores = getStorage('neon_survivor_scores', []);
-                return scores.sort((a, b) => b.score - a.score).slice(0, 10);
-            }
-
-            // Echte Netlify Funktion aufrufen
-            try {
-                const res = await fetch('/.netlify/functions/get-scores');
-                if (!res.ok) throw new Error("Netzwerk Antwort war nicht ok");
-                const data = await res.json();
-                return data; 
-            } catch (err) {
-                console.error("Fehler beim Laden des Leaderboards:", err);
-                return []; // Leeres Array zurückgeben, damit das Spiel nicht abstürzt
-            }
-        }
-
-        /**
-         * ------------------------------------------------------------------
-         * RARITY & UPGRADE SYSTEM (NEW)
-         * ------------------------------------------------------------------
-         */
-
-        // 8 Stufen Seltenheit
-        const RARITIES = [
-            { id: 0, name: "Gewöhnlich",    color: "#9ca3af", shadow: "#4b5563", mult: 1.0, weight: 1000 }, // Grau
-            { id: 1, name: "Ungewöhnlich",  color: "#4ade80", shadow: "#16a34a", mult: 1.5, weight: 600 },  // Grün
-            { id: 2, name: "Selten",        color: "#3b82f6", shadow: "#1d4ed8", mult: 2.2, weight: 350 },  // Blau
-            { id: 3, name: "Episch",        color: "#a855f7", shadow: "#7e22ce", mult: 3.5, weight: 200 },  // Lila
-            { id: 4, name: "Legendär",      color: "#f97316", shadow: "#c2410c", mult: 5.5, weight: 100 },  // Orange
-            { id: 5, name: "Mythisch",      color: "#ef4444", shadow: "#b91c1c", mult: 8.5, weight: 50 },   // Rot
-            { id: 6, name: "Göttlich",      color: "#06b6d4", shadow: "#0891b2", mult: 14.0, weight: 20 },  // Cyan
-            { id: 7, name: "Transzendent",  color: "#ffffff", shadow: "#ffffff", mult: 25.0, weight: 5 }    // Weiß/Rainbow
-        ];
-
-        // 1. Basis-Waffen (Clean Templates)
-        const WEAPONS = {
-            blaster: { name: "Blaster", damage: 1.0, speed: 1.0, rate: 1.0, count: 0, spread: 0.1, life: 1.0, pierce: 1, color: '#fff' },
-            shotgun: { name: "Shotgun", damage: 0.6, speed: 0.8, rate: 2.2, count: 4, spread: 0.6, life: 0.4, pierce: 1, color: '#ff0' },
-            sniper:  { name: "Railgun", damage: 4.0, speed: 2.5, rate: 3.0, count: 0, spread: 0.0, life: 1.5, pierce: 99, color: '#0ff' },
-            smg:     { name: "Uzi",     damage: 0.4, speed: 1.3, rate: 0.2, count: 0, spread: 0.4, life: 0.7, pierce: 1, color: '#f0f' },
-            nova:    { name: "Helix",   damage: 0.8, speed: 0.6, rate: 1.5, count: 2, spread: 0.2, life: 2.0, pierce: 3, color: '#0f0' }
-        };
-
-        // 2. Mögliche Effekte & ihre Darstellung
-        const EFFECTS = {
-            freeze:    { name: "Cryo",    color: "#00ffff" }, // Überschreibt Waffenfarbe mit Cyan
-            poison:    { name: "Toxic",   color: "#00ff00" }, // Grün
-            explosive: { name: "Blast",   color: "#ffaa00" }, // Orange
-            vampire:   { name: "Vampiric",color: "#ff0000" }  // Rot
-        };
-
-        // Die reinen Upgrade-Typen (getrennt von Werten)
-        const UPGRADE_TYPES = [
-            { 
-                id: 'weapon_swap', 
-                name: 'Waffenschmied', 
-                baseVal: 0, 
-                // Format nimmt jetzt das fertige Waffen-Objekt "v" entgegen
-                format: (v) => {
-                    return `Rüste ${v.name} aus`; 
-                }, 
-                apply: (p, v) => { 
-                    // Wir setzen direkt das generierte Objekt als aktuelle Waffe
-                    p.currentWeapon = v;
-                } 
-            },
-            { 
-                id: 'multishot', 
-                name: 'Multishot', 
-                baseVal: 1, 
-                format: (v) => `+${v} Projektil(e)`, 
-                apply: (p, v) => { p.stats.projectileCount += v; p.stats.damage *= 0.9; } // Slight dmg penalty removed for fun scaling? No, keep balance but scaled
-            },
-            { 
-                id: 'dmg', 
-                name: 'Power Core', 
-                baseVal: 0.15, // 15% Base
-                format: (v) => `+${Math.round(v*100)}% Schaden`, 
-                apply: (p, v) => { p.stats.damage *= (1 + v); } 
-            },
-            { 
-                id: 'haste', 
-                name: 'Overclock', 
-                baseVal: 0.10, // 10% Base
-                format: (v) => `+${Math.round(v*100)}% Feuerrate`, 
-                apply: (p, v) => { p.stats.fireRate *= (1 - (v * 0.5)); } // Diminishing returns formula simpler: fireRate / (1+v)? Let's do simple reduction but capped logically
-            },
-            { 
-                id: 'speed', 
-                name: 'Thrusters', 
-                baseVal: 0.10, 
-                format: (v) => `+${Math.round(v*100)}% Speed`, 
-                apply: (p, v) => { p.stats.speed *= (1 + v); } 
-            },
-            { 
-                id: 'health', 
-                name: 'Nano Hull', 
-                baseVal: 20, 
-                format: (v) => `+${Math.round(v)} Max HP & Heilung`, 
-                apply: (p, v) => { p.stats.maxHp += v; p.stats.hp += v * 1.5; } 
-            },
-            { 
-                id: 'magnet', 
-                name: 'Attractor', 
-                baseVal: 0.25, 
-                format: (v) => `+${Math.round(v*100)}% Reichweite`, 
-                apply: (p, v) => { p.stats.pickupRange *= (1 + v); } 
-            },
-            {
-                id: 'dash',
-                name: 'Dash Engine',
-                baseVal: 0.15,
-                format: (v) => `-${Math.round(v*100)}% Dash Cooldown`,
-                apply: (p, v) => { p.stats.dashCooldown *= (1 - (v*0.5)); }
-            }
-        ];
-
-        function getRarity(level) {
-            // "Luck" factor increases with level
-            // Level 1: luck = 1. Level 20: luck = 3. Level 50: luck = 6.
-            const luckMultiplier = 1 + (level * 0.1);
-
-            let totalWeight = 0;
-            // Temporäres Array mit gewichteten Wahrscheinlichkeiten basierend auf Level
-            const weightedRarities = RARITIES.map(r => {
-                // Höhere Rarities profitieren stärker vom Luck
-                let w = r.weight;
-                if (r.id > 0) w = w * (1 + (luckMultiplier * r.id * 0.5));
-                return { ...r, currentWeight: w };
-            });
-
-            weightedRarities.forEach(r => totalWeight += r.currentWeight);
-            
-            let random = Math.random() * totalWeight;
-            
-            for (let r of weightedRarities) {
-                if (random < r.currentWeight) return r;
-                random -= r.currentWeight;
-            }
-            return RARITIES[0]; // Fallback
-        }
-
-        function generateUpgradeCards(level) {
-            // 1. Mische Typen, um Duplikate zu verhindern
-            const shuffledTypes = [...UPGRADE_TYPES].sort(() => 0.5 - Math.random());
-            // Wähle die ersten 3 (eindeutig)
-            const selectedTypes = shuffledTypes.slice(0, 3);
-            
-            return selectedTypes.map(type => {
-                const rarity = getRarity(level);
-                // Berechne Wert: Basis * Rarity Multiplier
-                // Bei Multishot müssen wir runden, da halbe Projektile keinen Sinn machen (außer wir nutzen Probability, aber hier integer)
-                let value = type.baseVal * rarity.mult;
-                
-                if (type.id === 'multishot') {
-                    value = Math.max(1, Math.round(value)); // Mindestens 1, immer ganzzahlig
-                }
-
-                if (type.id === 'weapon_swap') {
-                    // A. Wähle zufälliges Basis-Modell
-                    const keys = Object.keys(WEAPONS);
-                    const randomKey = keys[Math.floor(Math.random() * keys.length)];
-                    const template = WEAPONS[randomKey];
-
-                    // B. Erstelle eine KOPIE der Waffe (Wichtig! Sonst ändern wir das Original)
-                    // Wir nutzen Spread-Syntax {...} für eine flache Kopie
-                    let newWeapon = { ...template };
-
-                    // C. Würfle auf einen Effekt (z.B. 30% Chance, oder höher bei hoher Rarity?)
-                    // Trick: Wir nutzen die Rarity der Karte für die Chance!
-                    // Gewöhnlich: 0%, Selten: 20%, Legendär: 100%
-                    const effectChance = rarity.id * 0.15; // id 0 = 0%, id 4 = 60%
-                    
-                    if (Math.random() < effectChance) {
-                        const effectKeys = Object.keys(EFFECTS);
-                        const randomEffectKey = effectKeys[Math.floor(Math.random() * effectKeys.length)];
-                        const effectConfig = EFFECTS[randomEffectKey];
-
-                        // Waffe mutieren
-                        newWeapon.effect = randomEffectKey;
-                        newWeapon.name = `${effectConfig.name} ${newWeapon.name}`; // z.B. "Cryo Uzi"
-                        newWeapon.color = effectConfig.color; // Farbe anpassen
-                    }
-
-                    // D. Das fertige Objekt ist unser "Value"
-                    value = newWeapon;
-                }
-
-                return {
-                    type: type,
-                    rarity: rarity,
-                    value: value,
-                    desc: type.format(value)
-                };
-            });
-        }
-
-
-        /**
-         * ------------------------------------------------------------------
-         * GAME ENGINE
-         * ------------------------------------------------------------------
-         */
-
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        let width, height;
-
-        function resize() {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
-        }
-        window.addEventListener('resize', resize);
-        resize();
-
-        const state = {
-            screen: 'START',
-            nickname: 'Player',
-            score: 0,
-            startTime: 0,
-            elapsedTime: 0,
-            paused: false,
-            difficultyMultiplier: 1.0,
-            enemiesKilledTotal: 0,
-            enemiesKilledRecent: 0,
-            lastDirectorCheck: 0,
-            resumeRampStart: 0 // For Slow-Mo
-        };
-
-        const input = {
-            keys: {},
-            joystick: { active: false, x: 0, y: 0, originX: 0, originY: 0, curX: 0, curY: 0, id: null },
-            dash: false
-        };
-
-        let player;
-        let bullets = [];
-        let enemies = [];
-        let particles = [];
-        let orbs = [];
-        let popups = [];
-
-        class Player {
-            constructor() {
-                this.x = width / 2;
-                this.y = height / 2;
-                this.radius = 15;
-                this.color = '#00f3ff';
-                this.currentWeapon = WEAPONS.blaster; // Startwaffe
-                this.stats = {
-                    maxHp: 100, hp: 100, speed: 4, damage: 20, fireRate: 400,
-                    projectileCount: 1, projectileSpeed: 8, pickupRange: 100,
-                    dashCooldown: 2000, dashSpeed: 12
-                };
-                this.lastShot = 0;
-                this.level = 1;
-                this.xp = 0;
-                this.xpToNext = 100;
-                this.isDashing = false;
-                this.dashTimer = 0;
-                this.lastDashTime = 0;
-                this.dashVector = {x:0, y:0};
-            }
-
-            update(dt, timeScale) {
-                let dx = 0, dy = 0;
-                if (input.keys['w'] || input.keys['ArrowUp']) dy = -1;
-                if (input.keys['s'] || input.keys['ArrowDown']) dy = 1;
-                if (input.keys['a'] || input.keys['ArrowLeft']) dx = -1;
-                if (input.keys['d'] || input.keys['ArrowRight']) dx = 1;
-                if (input.joystick.active) { dx = input.joystick.x; dy = input.joystick.y; }
-
-                if (dx !== 0 || dy !== 0) {
-                    const len = Math.sqrt(dx*dx + dy*dy);
-                    if (len > 1 && !input.joystick.active) { dx /= len; dy /= len; }
-                }
-
-                const now = performance.now();
-                if (input.dash && now - this.lastDashTime > this.stats.dashCooldown) {
-                    this.isDashing = true;
-                    this.dashTimer = 200;
-                    this.lastDashTime = now;
-                    this.dashVector = { x: dx || 1, y: dy };
-                    if (dx===0 && dy===0) this.dashVector.x = 1;
-                    createParticles(this.x, this.y, 10, '#ff00ff');
-                    updateDashUI(true);
-                }
-                
-                const moveSpeed = this.isDashing ? this.stats.dashSpeed : this.stats.speed;
-                const activeVector = this.isDashing ? this.dashVector : {x:dx, y:dy};
-
-                this.x += activeVector.x * moveSpeed * timeScale;
-                this.y += activeVector.y * moveSpeed * timeScale;
-
-                if (this.isDashing) {
-                    this.dashTimer -= dt * timeScale;
-                    if (this.dashTimer <= 0) this.isDashing = false;
-                    if (Math.random() < 0.5) particles.push(new Particle(this.x, this.y, 10, '#ff00ff', 0.5));
-                }
-
-                this.x = Math.max(this.radius, Math.min(width - this.radius, this.x));
-                this.y = Math.max(this.radius, Math.min(height - this.radius, this.y));
-
-                if (now - this.lastDashTime >= this.stats.dashCooldown) updateDashUI(false);
-
-                // Auto Fire (Independent of timeScale for Matrix feeling, or scaled? keeping independent is fun)
-                // Let's scale fire rate cooldown check slightly so you don't shoot infinite bullets in pause
-                // Actually, standard delta time logic is safer.
-                const currentFireRate = this.stats.fireRate * this.currentWeapon.rate;
-                if (now - this.lastShot > currentFireRate && !this.isDashing) {
-                    const target = getNearestEnemy(this.x, this.y);
-                    if (target) {
-                        this.shoot(target);
-                        this.lastShot = now;
-                    }
-                }
-            }
-
-            shoot(target) {
-                const w = this.currentWeapon;
-                const baseAngle = Math.atan2(target.y - this.y, target.x - this.x);
-                
-                // Kombiniere Player-Stats mit Waffen-Stats
-                const totalCount = this.stats.projectileCount + w.count;
-                
-                // Berechnung der Streuung (Spread)
-                const totalSpread = w.spread; 
-                
-                for (let i = 0; i < totalCount; i++) {
-                    // Winkel berechnen: Bei 1 Projektil geradeaus, sonst verteilt
-                    let angleOffset = (Math.random() - 0.5) * totalSpread; 
-                    if (totalCount > 1) {
-                        // Gleichmäßige Verteilung (Fächer) + etwas Zufall (Chaos)
-                        const fraction = i / (totalCount - 1);
-                        angleOffset = (fraction - 0.5) * totalSpread + (Math.random() - 0.5) * 0.1;
-                    }
-
-                    bullets.push(new Bullet(
-                        this.x, 
-                        this.y, 
-                        baseAngle + angleOffset, 
-                        this.stats.damage * w.damage, 
-                        this.stats.projectileSpeed * w.speed, 
-                        100 * w.life,   // Basis-Lebensdauer * Waffen-Faktor
-                        w.pierce,
-                        w.color,
-                        w.effect
-                    ));
-                }
-            }
-
-            draw() {
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.shadowBlur = 20; ctx.shadowColor = this.color;
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                if (this.isDashing) {
-                    ctx.rotate(Math.atan2(this.dashVector.y, this.dashVector.x));
-                    ctx.moveTo(15, 0); ctx.lineTo(-10, 10); ctx.lineTo(-10, -10);
-                } else {
-                    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-                }
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.shadowBlur = 0; ctx.beginPath();
-                ctx.arc(0, 0, this.stats.pickupRange, 0, Math.PI * 2); ctx.stroke();
-                ctx.restore();
-            }
-
-            gainXp(amount) {
-                this.xp += amount;
-                if (this.xp >= this.xpToNext) {
-                    this.xp -= this.xpToNext;
-                    this.level++;
-                    this.xpToNext = Math.floor(this.xpToNext * 1.5);
-                    triggerLevelUp();
-                }
-                updateHud();
-            }
-            
-            takeDamage(amount) {
-                if (this.isDashing) return;
-                this.stats.hp -= amount;
-                createPopup(this.x, this.y, `-${Math.round(amount)}`, '#ff0000');
-                updateHud();
-                if (this.stats.hp <= 0) gameOver();
-            }
-        }
-
-        class Enemy {
-            constructor(type) {
-                const edge = Math.floor(Math.random() * 4);
-                if (edge === 0) { this.x = Math.random() * width; this.y = -30; }
-                if (edge === 1) { this.x = width + 30; this.y = Math.random() * height; }
-                if (edge === 2) { this.x = Math.random() * width; this.y = height + 30; }
-                if (edge === 3) { this.x = -30; this.y = Math.random() * height; }
-
-                this.type = type || 'basic';
-                
-                // 1. Berechne ein "Tier" (Stufe) basierend auf der aktuellen Schwierigkeit
-                const mult = state.difficultyMultiplier; 
-                
-                // Basis-Werte definieren
-                let baseHp = 30;
-                let baseSpeed = 1.5;
-                let baseColorHue = 0; // 0 = Rot
-                let baseSize = 12;
-
-                if (this.type === 'tank') {
-                    baseHp = 80; baseSpeed = 1.0; baseColorHue = 30; baseSize = 20; // 30 = Orange
-                } else if (this.type === 'runner') {
-                    baseHp = 15; baseSpeed = 3.5; baseColorHue = 60; baseSize = 8; // 60 = Gelb
-                }
-
-                // Status Effects
-                this.freezeTimer = 0;
-                this.poisonTimer = 0;
-                this.poisonTick = 0;
-
-                // 2. Werte skalieren
-                this.hp = baseHp * mult;
-                this.speed = baseSpeed * (1 + (mult - 1) * 0.1);
-                this.xpValue = Math.floor(10 * mult);
-                this.damage = 10 * mult;
-                
-                // 3. Visuelle Mutation (Der "Lean"-Trick)
-                const hueShift = (mult - 1) * 40; 
-                this.color = `hsl(${baseColorHue + hueShift}, 100%, 50%)`;
-                this.radius = baseSize * Math.min(1.5, 1 + (mult - 1) * 0.1);
-                
-                // Speichere, ob es ein Elite-Gegner ist
-                this.isElite = Math.random() < 0.05; // 5% Chance
-                if (this.isElite) {
-                    this.hp *= 3;
-                    this.radius *= 1.3;
-                    this.xpValue *= 5;
-                }
-            }
-
-            update(timeScale) {
-                // 1. Status Effekte verarbeiten
-                let currentSpeed = this.speed;
-                
-                // Freeze Logik: Wenn Timer aktiv, Speed halbieren
-                if (this.freezeTimer > 0) {
-                    this.freezeTimer -= timeScale;
-                    currentSpeed *= 0.4; // 60% Langsamer
-                    
-                    // Visualisierung: Blaues Overlay (simpel über Farbeffekt im Draw lösbar, aber hier reicht Speed)
-                    if (Math.random() < 0.1) createParticles(this.x, this.y, 1, '#00ffff');
-                }
-
-                // Poison Logik: Schaden über Zeit
-                if (this.poisonTimer > 0) {
-                    this.poisonTimer -= timeScale;
-                    this.poisonTick += timeScale;
-                    if (this.poisonTick > 20) { // Alle 20 Frames Schaden
-                        this.takeDamage(player.stats.damage * 0.2); // 20% DPS
-                        createPopup(this.x, this.y + 10, "tox", "#00ff00");
-                        this.poisonTick = 0;
-                    }
-                }
-
-                // 2. Bewegung (mit modifiziertem Speed)
-                const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                this.x += Math.cos(angle) * currentSpeed * timeScale;
-                this.y += Math.sin(angle) * currentSpeed * timeScale;
-                
-                const dist = Math.hypot(player.x - this.x, player.y - this.y);
-                if (dist < this.radius + player.radius) {
-                    player.takeDamage(this.damage);
-                    this.hp = 0;
-                }
-            }
-
-            draw() {
-                ctx.save(); 
-                ctx.translate(this.x, this.y);
-                
-                // Elite Gegner bekommen einen weißen Glüh-Effekt
-                const shadowCol = this.isElite ? '#fff' : this.color;
-                const shadowBlur = this.isElite ? 20 : 10;
-                
-                ctx.shadowBlur = shadowBlur; 
-                ctx.shadowColor = shadowCol; 
-                ctx.fillStyle = this.color;
-
-                // Elite Indikator (weißer Rand)
-                if (this.isElite) {
-                    ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 2;
-                }
-
-                if (this.type === 'basic') {
-                    // Skaliertes Dreieck
-                    ctx.beginPath(); 
-                    ctx.moveTo(this.radius, 0); 
-                    ctx.lineTo(-this.radius * 0.8, this.radius * 0.8); 
-                    ctx.lineTo(-this.radius * 0.8, -this.radius * 0.8); 
-                    ctx.fill();
-                } else if (this.type === 'tank') {
-                    ctx.fillRect(-this.radius, -this.radius, this.radius*2, this.radius*2);
-                } else {
-                    ctx.beginPath(); ctx.arc(0,0, this.radius, 0, Math.PI*2); ctx.fill();
-                }
-                
-                if (this.isElite) ctx.stroke(); // Rand zeichnen
-
-                ctx.restore();
-            }
-
-            takeDamage(dmg) {
-                this.hp -= dmg;
-                createPopup(this.x, this.y, `${Math.round(dmg)}`, '#fff');
-                if (this.hp <= 0) {
-                    createParticles(this.x, this.y, 5, this.color);
-                    orbs.push(new Orb(this.x, this.y, this.xpValue));
-                    state.score += this.xpValue;
-                    state.enemiesKilledRecent++;
-                    state.enemiesKilledTotal++;
-                    updateHud();
-                }
-            }
-        }
-
-        class Bullet {
-            constructor(x, y, angle, damage, speed, lifeTime, pierce, color, effect) {
-                this.x = x; this.y = y;
-                this.vx = Math.cos(angle) * speed; 
-                this.vy = Math.sin(angle) * speed;
-                this.damage = damage; 
-                this.radius = 4; 
-                this.life = lifeTime; // Lebensdauer in Frames
-                this.pierce = pierce; // Durchschlagskraft
-                this.color = color;
-                this.effect = effect;
-                this.hitList = []; // Damit wir denselben Gegner nicht 2x pro Frame treffen
-            }
-            update(timeScale) {
-                this.x += this.vx * timeScale; 
-                this.y += this.vy * timeScale;
-                this.life -= 1 * timeScale;
-            }
-            draw() {
-                ctx.save(); 
-                ctx.shadowBlur = 10; ctx.shadowColor = this.color; ctx.fillStyle = '#fff';
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill(); 
-                ctx.restore();
-            }
-        }
-
-        class Orb {
-            constructor(x, y, value) {
-                this.x = x; this.y = y; this.value = value; this.radius = 4; this.magnetized = false;
-            }
-            update(timeScale) {
-                const dist = Math.hypot(player.x - this.x, player.y - this.y);
-                if (dist < player.stats.pickupRange || this.magnetized) {
-                    this.magnetized = true;
-                    const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                    const speed = 12;
-                    this.x += Math.cos(angle) * speed * timeScale;
-                    this.y += Math.sin(angle) * speed * timeScale;
-                    if (dist < player.radius + 5) {
-                        player.gainXp(this.value);
-                        return false;
-                    }
-                }
-                return true;
-            }
-            draw() {
-                ctx.fillStyle = '#ffff00'; ctx.shadowBlur = 5; ctx.shadowColor = '#ffff00';
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill();
-            }
-        }
-
-        class Particle {
-            constructor(x, y, size, color, speedScale=1) {
-                this.x = x; this.y = y;
-                const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 3 * speedScale;
-                this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
-                this.life = 1.0; this.decay = 0.05 + Math.random() * 0.05;
-                this.size = size; this.color = color;
-            }
-            update(timeScale) {
-                this.x += this.vx * timeScale; this.y += this.vy * timeScale;
-                this.life -= this.decay * timeScale;
-            }
-            draw() {
-                ctx.globalAlpha = this.life; ctx.fillStyle = this.color;
-                ctx.fillRect(this.x, this.y, this.size * this.life, this.size * this.life);
-                ctx.globalAlpha = 1.0;
-            }
-        }
-
-        class Popup {
-            constructor(x, y, text, color) {
-                this.x = x; this.y = y; this.text = text; this.color = color;
-                this.life = 1.0; this.vy = -1;
-            }
-            update(timeScale) { this.y += this.vy * timeScale; this.life -= 0.02 * timeScale; }
-            draw() {
-                ctx.globalAlpha = this.life; ctx.fillStyle = this.color;
-                ctx.font = '12px Orbitron'; ctx.fillText(this.text, this.x, this.y); ctx.globalAlpha = 1.0;
-            }
-        }
-
-        // --- CORE FUNCTIONS ---
-
-        function getNearestEnemy(x, y) {
-            let nearest = null; let minDist = Infinity;
-            for (let e of enemies) {
-                const dist = Math.hypot(e.x - x, e.y - y);
-                if (dist < minDist && dist < 800) { minDist = dist; nearest = e; }
-            }
-            return nearest;
-        }
-        function createParticles(x, y, count, color) { for(let i=0; i<count; i++) particles.push(new Particle(x, y, 4, color)); }
-        function createPopup(x, y, text, color) { popups.push(new Popup(x, y, text, color)); }
-
-        function updateDashUI(onCooldown) {
-            const btn = document.getElementById('dashBtn');
-            const overlay = document.getElementById('dashCdOverlay');
-            if (onCooldown) {
-                btn.style.borderColor = '#555'; btn.style.color = '#555'; overlay.classList.remove('hidden');
-            } else {
-                btn.style.borderColor = '#ff00ff'; btn.style.color = '#ff00ff'; overlay.classList.add('hidden');
-            }
-        }
-
-        function updateHud() {
-            const hpPct = Math.max(0, (player.stats.hp / player.stats.maxHp) * 100);
-            document.getElementById('hpBar').style.width = `${hpPct}%`;
-            const xpPct = (player.xp / player.xpToNext) * 100;
-            document.getElementById('xpBar').style.width = `${xpPct}%`;
-            document.getElementById('scoreDisplay').innerText = Math.floor(state.score);
-            document.getElementById('levelDisplay').innerText = player.level;
-            const totalSeconds = Math.floor(state.elapsedTime);
-            const m = Math.floor(totalSeconds / 60).toString().padStart(2,'0');
-            const s = (totalSeconds % 60).toString().padStart(2,'0');
-            document.getElementById('timeDisplay').innerText = `${m}:${s}`;
-        }
-
-        // --- DIRECTOR & SPAWNER ---
-        let spawnTimer = 0;
-        let spawnInterval = 60;
-
-        function updateDirector() {
-            const now = performance.now();
-            state.difficultyMultiplier = 1 + (state.elapsedTime / 60) * 0.5;
-
-            if (now - state.lastDirectorCheck > 5000) {
-                const killRate = state.enemiesKilledRecent / 5;
-                state.enemiesKilledRecent = 0;
-                state.lastDirectorCheck = now;
-                if (killRate > 3) spawnInterval = Math.max(10, spawnInterval - 5);
-                else if (killRate < 0.5 && enemies.length > 5) spawnInterval = Math.min(100, spawnInterval + 5);
-            }
-
-            spawnTimer--;
-            if (spawnTimer <= 0) {
-                let type = 'basic';
-                if (state.elapsedTime > 30 && Math.random() < 0.2) type = 'runner';
-                if (state.elapsedTime > 60 && Math.random() < 0.1) type = 'tank';
-                if (enemies.length < 100) enemies.push(new Enemy(type));
-                spawnTimer = spawnInterval / state.difficultyMultiplier; 
-            }
-        }
-
-        // --- LEVEL UP LOGIC (UPDATED) ---
-
-        function triggerLevelUp() {
-            state.paused = true;
-            state.screen = 'LEVELUP';
-            input.joystick.active = false; // Reset Input
-
-            // Generiere Karten (garantiert 3 unterschiedliche)
-            const cards = generateUpgradeCards(player.level);
-
-            const container = document.getElementById('cardsContainer');
-            container.innerHTML = '';
-            document.getElementById('levelUpScreen').classList.remove('hidden');
-            
-            cards.forEach(cardData => {
-                const card = document.createElement('div');
-                const rarity = cardData.rarity;
-                const isTranscendent = rarity.id === 7;
-
-                // Dynamisches Styling basierend auf Rarity
-                card.className = `boon-card flex flex-col justify-between p-6 rounded-lg w-full md:w-64 cursor-pointer relative overflow-hidden bg-gray-900`;
-                
-                // Special Effect Class für Transcendent
-                if (isTranscendent) card.classList.add('rarity-transcendent');
-
-                // Style direkt setzen für dynamische Farben
-                card.style.borderColor = rarity.color;
-                card.style.boxShadow = `0 0 10px ${rarity.shadow}, inset 0 0 20px rgba(0,0,0,0.8)`;
-
-                card.innerHTML = `
-                    <div>
-                        <div class="text-xs uppercase tracking-widest mb-1" style="color: ${rarity.color}">${rarity.name}</div>
-                        <h3 class="text-xl font-bold mb-4 text-white" style="text-shadow: 0 0 10px ${rarity.color}">${cardData.type.name}</h3>
-                        <p class="text-gray-200 text-lg font-bold">${cardData.desc}</p>
-                    </div>
-                    <div class="mt-4 text-xs text-gray-500 text-right">CLICK TO SELECT</div>
-                `;
-                
-                card.onclick = () => {
-                    cardData.type.apply(player, cardData.value);
-                    resumeGame();
-                };
-                container.appendChild(card);
-            });
-        }
-
-        function resumeGame() {
-            document.getElementById('levelUpScreen').classList.add('hidden');
-            state.screen = 'PLAY';
-            state.paused = false;
-            state.resumeRampStart = performance.now();
-        }
-
-        // --- LOOP & INPUT ---
-
-        let lastTime = 0;
-        function gameLoop(timestamp) {
-            if (!lastTime) lastTime = timestamp;
-            const dt = timestamp - lastTime;
-            lastTime = timestamp;
-
-            if (state.screen === 'PLAY' && !state.paused) {
-                // Clear & Grid
-                ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, width, height);
-                ctx.strokeStyle = '#111'; ctx.lineWidth = 1; ctx.beginPath();
-                const gridSize = 50;
-                for (let x = 0; x < width; x += gridSize) { ctx.moveTo(x, 0); ctx.lineTo(x, height); }
-                for (let y = 0; y < height; y += gridSize) { ctx.moveTo(0, y); ctx.lineTo(width, y); }
-                ctx.stroke();
-
-                // Slow Motion Ramp
-                let timeScale = 1.0;
-                if (state.resumeRampStart > 0) {
-                    const diff = performance.now() - state.resumeRampStart;
-                    if (diff < 1000) timeScale = Math.max(0.1, diff / 1000);
-                    else state.resumeRampStart = 0;
-                }
-
-                // Updates
-                state.elapsedTime += dt / 1000;
-                updateDirector();
-                player.update(dt, timeScale);
-                
-                bullets = bullets.filter(b => {
-                    b.update(timeScale);
-                    if (b.life <= 0) return false;
-                    
-                    for (let e of enemies) {
-                        // Kollisionsprüfung
-                        if (e.hp > 0 && Math.hypot(b.x - e.x, b.y - e.y) < e.radius + b.radius) {
-                            // Verhindern, dass eine Kugel denselben Gegner mehrfach pro Frame trifft (bei Durchschlag wichtig)
-                            if (!b.hitList.includes(e)) {
-                                e.takeDamage(b.damage);
-                                
-                                // --- STATUS EFFEKTE ANWENDEN ---
-                                if (b.effect === 'freeze') {
-                                    e.freezeTimer = 120; // 2 Sekunden Freeze (bei 60fps)
-                                }
-                                
-                                if (b.effect === 'poison') {
-                                    e.poisonTimer = 180; // 3 Sekunden Gift
-                                }
-                                
-                                if (b.effect === 'vampire') {
-                                    // 5% Chance auf 2 HP Heilung
-                                    if (Math.random() < 0.05) {
-                                        player.stats.hp = Math.min(player.stats.maxHp, player.stats.hp + 2);
-                                        createPopup(player.x, player.y, "+HP", "#ff0000");
-                                        updateHud();
-                                    }
-                                }
-
-                                if (b.effect === 'explosive') {
-                                    // Mini-Explosion erzeugen
-                                    createParticles(e.x, e.y, 8, '#ffaa00');
-                                    // Flächenschaden an umliegende Gegner
-                                    enemies.forEach(other => {
-                                        const dx = other.x - e.x;
-                                        const dy = other.y - e.y;
-                                        // 60^2 = 3600
-                                        if (other !== e && (dx*dx + dy*dy) < 3600) {
-                                            other.takeDamage(b.damage * 0.5); // 50% Splash Damage
-                                        }
-                                    });
-                                }
-                                // -------------------------------
-
-                                b.pierce--;
-                                b.hitList.push(e);
-                                
-                                // Effekt: Rückstoß oder kleiner Blitz bei Treffer
-                                createParticles(e.x, e.y, 3, b.color);
-                            }
-                            
-                            if (b.pierce <= 0) return false; // Kugel wird zerstört
-                        }
-                    }
-                    return true; // Kugel lebt weiter (fliegt durch)
-                });
-
-                enemies = enemies.filter(e => { e.update(timeScale); return e.hp > 0; });
-                orbs = orbs.filter(o => o.update(timeScale));
-                particles = particles.filter(p => { p.update(timeScale); return p.life > 0; });
-                popups = popups.filter(p => { p.update(timeScale); return p.life > 0; });
-
-                // Draw
-                particles.forEach(p => p.draw());
-                orbs.forEach(o => o.draw());
-                enemies.forEach(e => e.draw());
-                bullets.forEach(b => b.draw());
-                player.draw();
-                popups.forEach(p => p.draw());
-                updateHud();
-            }
-            requestAnimationFrame(gameLoop);
-        }
-
-        // Input Listeners
-        window.addEventListener('keydown', e => { input.keys[e.key] = true; if(e.code==='Space') input.dash = true; });
-        window.addEventListener('keyup', e => { input.keys[e.key] = false; if(e.code==='Space') input.dash = false; });
-
-        const controlsDiv = document.getElementById('controls');
-        const dashBtn = document.getElementById('dashBtn');
-        dashBtn.addEventListener('touchstart', (e) => { e.preventDefault(); input.dash = true; });
-        dashBtn.addEventListener('touchend', (e) => { e.preventDefault(); input.dash = false; });
-        dashBtn.addEventListener('mousedown', () => input.dash = true);
-        dashBtn.addEventListener('mouseup', () => input.dash = false);
-
-        controlsDiv.addEventListener('touchstart', e => {
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const t = e.changedTouches[i];
-                if (t.clientX < width / 2 && !input.joystick.active) {
-                    input.joystick.id = t.identifier; input.joystick.active = true;
-                    input.joystick.originX = t.clientX; input.joystick.originY = t.clientY;
-                    input.joystick.curX = t.clientX; input.joystick.curY = t.clientY;
-                    createJoystickVisual();
-                }
-            }
-        }, {passive: false});
-
-        controlsDiv.addEventListener('touchmove', e => {
-            e.preventDefault();
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const t = e.changedTouches[i];
-                if (t.identifier === input.joystick.id) {
-                    input.joystick.curX = t.clientX; input.joystick.curY = t.clientY;
-                    updateJoystickVector();
-                }
-            }
-        }, {passive: false});
-
-        controlsDiv.addEventListener('touchend', e => {
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                if (e.changedTouches[i].identifier === input.joystick.id) {
-                    input.joystick.active = false; input.joystick.x = 0; input.joystick.y = 0;
-                    removeJoystickVisual();
-                }
-            }
-        });
-
-        let stickBase, stickKnob;
-        function createJoystickVisual() {
-            if (stickBase) removeJoystickVisual();
-            stickBase = document.createElement('div');
-            stickBase.className = 'joystick-part';
-            stickBase.style.cssText = `position: absolute; left: ${input.joystick.originX - 50}px; top: ${input.joystick.originY - 50}px; width: 100px; height: 100px; border: 2px solid rgba(0, 243, 255, 0.3); border-radius: 50%; pointer-events: none;`;
-            stickKnob = document.createElement('div');
-            stickKnob.className = 'joystick-part';
-            stickKnob.style.cssText = `position: absolute; left: ${input.joystick.originX - 25}px; top: ${input.joystick.originY - 25}px; width: 50px; height: 50px; background: rgba(0, 243, 255, 0.5); border-radius: 50%; pointer-events: none;`;
-            controlsDiv.appendChild(stickBase); controlsDiv.appendChild(stickKnob);
-        }
-        function updateJoystickVector() {
-            const maxDist = 50;
-            let dx = input.joystick.curX - input.joystick.originX; let dy = input.joystick.curY - input.joystick.originY;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist > maxDist) { dx = (dx / dist) * maxDist; dy = (dy / dist) * maxDist; }
-            input.joystick.x = dx / maxDist; input.joystick.y = dy / maxDist;
-            if (stickKnob) stickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
-        }
-        function removeJoystickVisual() {
-            if (stickBase) stickBase.remove(); if (stickKnob) stickKnob.remove();
-            stickBase = null; stickKnob = null;
-            // Robust cleanup
-            document.querySelectorAll('.joystick-part').forEach(el => el.remove());
-        }
-
-        function resetInput() {
-            input.keys = {};
-            input.dash = false;
-            input.joystick.active = false;
-            input.joystick.id = null;
-            input.joystick.x = 0;
-            input.joystick.y = 0;
-            removeJoystickVisual();
-        }
-
-        // --- FLOW ---
-        document.getElementById('startBtn').addEventListener('click', () => {
-            const name = document.getElementById('nicknameInput').value || "Anon";
-            state.nickname = name; startGame();
-        });
-        document.getElementById('restartBtn').addEventListener('click', () => {
-            document.getElementById('gameOverScreen').classList.add('hidden');
-            document.getElementById('startScreen').classList.remove('hidden');
-        });
-
-        function startGame() {
-            resetInput();
-            
-            // Reset Timing & State Variables to prevent carry-over bugs
-            lastTime = 0; 
-            state.lastDirectorCheck = 0;
-            spawnInterval = 60;
-
-            document.getElementById('startScreen').classList.add('hidden');
-            document.getElementById('hud').classList.remove('hidden');
-            document.getElementById('controls').classList.remove('hidden');
-            state.score = 0; state.elapsedTime = 0; 
-            // Removed state.level to fix duplicate state issue
-            state.difficultyMultiplier = 1; state.enemiesKilledTotal = 0; state.enemiesKilledRecent = 0;
-            state.screen = 'PLAY'; state.paused = false; state.resumeRampStart = 0;
-            player = new Player(); bullets = []; enemies = []; particles = []; orbs = []; popups = []; spawnTimer = 0;
-            // Removed requestAnimationFrame(gameLoop) to prevent infinite speedup
-        }
-
-        async function gameOver() {
-            state.screen = 'GAMEOVER';
-            resetInput(); // Clean up input state on death
-            document.getElementById('controls').classList.add('hidden');
-            document.getElementById('hud').classList.add('hidden');
-            document.getElementById('gameOverScreen').classList.remove('hidden');
-            document.getElementById('finalScore').innerText = Math.floor(state.score);
-            await saveHighscore(state.nickname, Math.floor(state.score));
-            const leaderboard = await fetchLeaderboard();
-            const list = document.getElementById('leaderboardList');
-            list.innerHTML = '';
-            leaderboard.forEach((entry, i) => {
-                const li = document.createElement('li');
-                li.className = "flex justify-between border-b border-gray-700 pb-1";
-                li.innerHTML = `<span class="${i===0 ? 'text-yellow-400': 'text-gray-300'}">${i+1}. ${entry.name}</span><span class="font-mono text-neon-blue">${entry.score}</span>`;
-                list.appendChild(li);
-            });
-        }
-
-        // Start Game Loop Once
-        requestAnimationFrame(gameLoop);
-    </script>
-</body>
+        <p id="submitNote"></p>
+        <p class="note">
+          Freiwillig. Übertragen werden nur Rufzeichen, Punktestand und Fahrtdauer —
+          nichts davon muss auf dich zurückführen.
+        </p>
+      </div>
+
+      <button id="restartBtn" class="btn btn--primary" type="button">Neue Fahrt</button>
+      <a class="link" href="impressum.html">Impressum &amp; Datenschutz</a>
+    </section>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>

@@ -1,31 +1,47 @@
-import Redis from "ioredis";
+import Redis from 'ioredis';
 
-export default async (req, context) => {
-    try {
-        const client = new Redis(process.env.REDIS_URL);
+/** Liest die besten Einträge der Bestenliste. */
 
-        // ZREVRANGE: Hole Top 10
-        const rawData = await client.zrevrange("neon_leaderboard", 0, 9, "WITHSCORES");
-        
-        client.quit();
+const LEADERBOARD_KEY = 'neon_leaderboard';
+const TOP_N = 10;
 
-        // Formatierung
-        const formattedScores = [];
-        for (let i = 0; i < rawData.length; i += 2) {
-            const memberId = rawData[i];
-            const score = parseInt(rawData[i+1]);
-            const cleanName = memberId.split(':::')[0];
+let client = null;
 
-            formattedScores.push({ name: cleanName, score: score });
-        }
+function getClient() {
+  if (!client) {
+    client = new Redis(process.env.REDIS_URL, {
+      maxRetriesPerRequest: 2,
+      enableOfflineQueue: false,
+    });
+    client.on('error', (err) => console.error('Redis:', err.message));
+  }
+  return client;
+}
 
-        return new Response(JSON.stringify(formattedScores), {
-            headers: { "Content-Type": "application/json" },
-            status: 200
-        });
+export default async () => {
+  const headers = {
+    'Content-Type': 'application/json',
+    // Kurz zwischenspeicherbar: Die Liste ändert sich selten, und das
+    // entlastet die Datenbank spürbar.
+    'Cache-Control': 'public, max-age=15, s-maxage=30',
+  };
 
-    } catch (error) {
-        console.error("Redis Error:", error);
-        return new Response(JSON.stringify([]), { status: 500 });
+  try {
+    const raw = await getClient().zrevrange(LEADERBOARD_KEY, 0, TOP_N - 1, 'WITHSCORES');
+
+    const entries = [];
+    for (let i = 0; i < raw.length; i += 2) {
+      entries.push({
+        name: raw[i].split(':::')[0],
+        score: Number.parseInt(raw[i + 1], 10) || 0,
+      });
     }
+
+    return new Response(JSON.stringify(entries), { status: 200, headers });
+  } catch (error) {
+    console.error('get-scores:', error);
+    // Leere Liste mit 200: Für den Client ist "noch keine Daten" der gleiche
+    // Fall, und ein Fehlerstatus würde nur unnötig Konsolenrauschen erzeugen.
+    return new Response('[]', { status: 200, headers });
+  }
 };
