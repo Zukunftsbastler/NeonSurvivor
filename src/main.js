@@ -18,13 +18,17 @@ import { render, updateSweep, resetSweep } from './render/renderer.js';
 import { updateJuice, resetJuice, isStopped, ring, flash, shake } from './render/juice.js';
 import { initHud, updateHud, resetHudCache, pulseXpBar, getXpBarCentre } from './ui/hud.js';
 import { initCards, showLevelUp, showPactOffer, hideAllCardScreens } from './ui/cards.js';
+import { initLogbook, refreshLogbook } from './ui/logbook.js';
+import { updateLoadout, resetLoadout } from './systems/loadout.js';
+import { resetCouplingCooldowns } from './systems/damage.js';
+import { resetLedger } from './systems/ledger.js';
 import { initScreens, showGameOver, showPause, hidePause, isPauseVisible } from './ui/screens.js';
 import { initAudio, suspendAudio, resumeAudio, setEnabled } from './audio/synth.js';
 import { settings, onSettingChange, vibrate } from './core/settings.js';
 import { initSettingsPanel } from './ui/settings-panel.js';
 import { sfxLevelUp, sfxHullAlarm, sfxSweepPing, sfxGameOver, sfxOrb, resetSfxState } from './audio/sfx.js';
 import { TITLE, SUBTITLE, PALETTE } from './config/theme.js';
-import { FIRST_OFFER_S, OFFER_INTERVAL_S, BORED_HP_RATIO, BORED_UNHURT_S } from './config/pacts.js';
+import { FIRST_OFFER_S, OFFER_INTERVAL_S, BORED_HP_RATIO, BORED_UNHURT_S, MAX_PACTS } from './config/pacts.js';
 
 /**
  * Die gesamte Bewegungslogik des Prototyps war framebasiert: `timeScale` war
@@ -63,6 +67,7 @@ function boot() {
   initHud();
   initCards();
   initSettingsPanel('.settings-grid');
+  initLogbook('.logbook');
 
   // Tonschalter an den Synthesizer koppeln.
   setEnabled(settings.sound);
@@ -160,6 +165,9 @@ function startRun(nickname) {
   resetHudCache();
   resetJuice();
   resetSfxState();
+  resetLoadout();
+  resetCouplingCooldowns();
+  resetLedger();
   clearFx();
   clearWorld();
   hideAllCardScreens();
@@ -269,7 +277,7 @@ function afterChoice() {
  */
 function shouldOfferPact() {
   if (state.elapsedTime < FIRST_OFFER_S) return false;
-  if (state.activePacts.length >= 5) return false;
+  if (state.activePacts.length >= MAX_PACTS) return false;
 
   const since = state.elapsedTime - state.lastPactOfferS;
   if (since >= OFFER_INTERVAL_S) return true;
@@ -292,6 +300,10 @@ async function endRun() {
 
   document.getElementById('hud').classList.add('hidden');
   document.getElementById('controls').classList.add('hidden');
+
+  // Muss VOR dem Aufräumen laufen — danach ist der Spieler fort und der
+  // Ausbaustand wäre nicht mehr auslesbar.
+  refreshLogbook();
 
   const total = Math.floor(state.elapsedTime);
   await showGameOver({
@@ -375,6 +387,7 @@ function step(ts, dtMs) {
   enemyGrid.rebuild(world.enemies);
 
   player.update(ts, dtMs);
+  updateLoadout(player, dtMs, ts);
   resolveDash(player);
 
   updateBullets(ts, player);
@@ -403,6 +416,7 @@ function step(ts, dtMs) {
 
   updateZones(ts);
   updateFx(ts);
+  if (world.jammed > 0) world.jammed -= ts;
   if (updateSweep(dtMs)) sfxSweepPing();
 
   if (player.hp / player.maxHp < 0.3) sfxHullAlarm();

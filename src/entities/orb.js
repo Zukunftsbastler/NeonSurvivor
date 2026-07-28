@@ -1,5 +1,6 @@
 import { world } from '../core/world.js';
 import { state } from '../core/state.js';
+import { TAG } from '../config/tags.js';
 import { PALETTE } from '../config/theme.js';
 import { drawGlow } from '../render/glow.js';
 
@@ -74,7 +75,11 @@ export class Orb {
   }
 
   get worth() {
-    return this.value * state.mods.orbValue;
+    // Die Signalmarke wirkt auf die AUSBEUTE, nicht auf Schaden. Das ist der
+    // wirtschaftliche Weg, sich aufzuschaukeln: mehr Ausbeute -> schnellere
+    // Stufen -> mehr Karten -> mehr Wirkung. Indirekt, aber sehr wirksam.
+    const amp = world.player ? world.player.amplify([TAG.SIGNAL]) : 1;
+    return this.value * state.mods.orbValue * amp;
   }
 
   draw(ctx) {
@@ -115,6 +120,8 @@ export class Zone {
     this.onTick = onTick;
     this.dead = false;
     this.tickAcc = 0;
+    /** Ölspuren entzünden sich an Druckwellen. */
+    this.flammable = false;
   }
 
   update(ts) {
@@ -144,5 +151,7 @@ export class Zone {
 }
 
 export function spawnZone(x, y, radius, life, color, onTick) {
-  world.zones.push(new Zone(x, y, radius, life, color, onTick));
+  const zone = new Zone(x, y, radius, life, color, onTick);
+  world.zones.push(zone);
+  return zone;
 }

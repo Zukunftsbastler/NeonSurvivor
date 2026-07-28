@@ -14,7 +14,7 @@ export class Bullet {
     this.reset(opts);
   }
 
-  reset({ x, y, angle, damage, speed, life, pierce, color, effect, trait, charged }) {
+  reset({ x, y, angle, damage, speed, life, pierce, color, effect, trait, charged, tags, sourceName }) {
     this.x = x;
     this.y = y;
     this.originX = x;
@@ -31,6 +31,10 @@ export class Bullet {
     this.effect = effect;
     this.trait = trait;
     this.charged = !!charged;
+    /** Marken des Ereignisses. Nah-/Fernbereich kommen beim Treffer dazu. */
+    this.tags = tags ?? [];
+    /** Klartextname für das Schadensbuch. */
+    this.sourceName = sourceName ?? 'Signalgeber';
     this.dead = false;
     this.returning = false;
     this.hitList = new Set();
@@ -126,6 +130,18 @@ export class EnemyBullet {
     this.radius = 5;
     this.life = 260;
     this.dead = false;
+    this.reflected = false;
+    this.hitList = new Set();
+  }
+
+  /** Kehrt die Flugrichtung um und macht das Projektil zu unserem. */
+  reflect(damage) {
+    this.vx *= -1.15;
+    this.vy *= -1.15;
+    this.reflected = true;
+    this.damage = damage;
+    this.life = 200;
+    this.hitList = new Set();
   }
 
   update(ts) {
@@ -144,8 +160,9 @@ export class EnemyBullet {
   }
 
   draw(ctx) {
-    drawGlow(ctx, PALETTE.alarm, this.radius * 2.4, this.x, this.y, 0.9);
-    ctx.fillStyle = PALETTE.alarm;
+    const col = this.reflected ? PALETTE.system : PALETTE.alarm;
+    drawGlow(ctx, col, this.radius * 2.4, this.x, this.y, 0.9);
+    ctx.fillStyle = col;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius * 0.6, 0, Math.PI * 2);
     ctx.fill();

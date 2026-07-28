@@ -20,6 +20,22 @@ export const world = {
   orbs: [],
   /** Kurzlebige Flächenwirkungen (Korrosionswolken, Druckwellen). */
   zones: [],
+
+  /** Eigene Einheiten und Auslagen aus den Systemen. */
+  escorts: [],
+  drones: [],
+  mines: [],
+  beacons: [],
+
+  /**
+   * Ein aktives Funkfeuer zieht Kontakte auf sich statt auf den Spieler.
+   * Liegt hier, damit die Gegnerlogik es lesen kann, ohne die Systeme zu kennen.
+   */
+  decoy: null,
+  /** Solange gesetzt, verlieren Kontakte den Spieler (Nebelwand). */
+  smokeUntil: 0,
+  /** Frames, in denen ein Funkstörer die Zielerfassung drückt. */
+  jammed: 0,
 };
 
 /**
@@ -64,6 +80,13 @@ export function clearWorld() {
   world.enemies.length = 0;
   world.orbs.length = 0;
   world.zones.length = 0;
+  world.escorts.length = 0;
+  world.drones.length = 0;
+  world.mines.length = 0;
+  world.beacons.length = 0;
+  world.decoy = null;
+  world.smokeUntil = 0;
+  world.jammed = 0;
   world.player = null;
 }
 

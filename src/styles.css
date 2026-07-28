@@ -214,6 +214,7 @@ canvas {
 }
 
 #weaponStrip,
+#systemStrip,
 #pactStrip {
   display: flex;
   flex-wrap: wrap;
@@ -222,6 +223,7 @@ canvas {
 }
 
 .weapon-chip,
+.system-chip,
 .pact-chip {
   font-size: 0.55rem;
   letter-spacing: 0.06em;
@@ -229,6 +231,11 @@ canvas {
   border: 1px solid var(--hairline);
   color: var(--tint, var(--chrome));
   white-space: nowrap;
+}
+
+.system-chip {
+  border-color: rgba(216, 255, 240, 0.35);
+  color: var(--salvage);
 }
 
 .pact-chip {
@@ -466,11 +473,44 @@ canvas {
   border-color: var(--alarm);
 }
 
+.boon-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
 .boon-rarity {
   font-size: 0.55rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--rarity, var(--chrome));
+}
+
+/* Kartenart. Jede Art bekommt eine eigene Kontur, damit man beim Überfliegen
+   erkennt, ob eine Karte einen Signalgeber, einen Begleiter oder eine reine
+   Zahl bringt — die Seltenheit allein sagt darüber nichts. */
+.boon-kind {
+  font-size: 0.52rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.34rem;
+  border: 1px solid currentColor;
+  color: var(--chrome);
+  white-space: nowrap;
+}
+
+.kind-waffe .boon-kind { color: var(--system); }
+.kind-system .boon-kind { color: var(--salvage); }
+.kind-verstaerker .boon-kind { color: var(--contact); }
+.kind-kopplung .boon-kind { color: #9fe8ff; }
+.kind-wert .boon-kind { color: var(--chrome); }
+
+/* Kopplungen sind selten und sollen sich auch so anfühlen. */
+.kind-kopplung {
+  background:
+    linear-gradient(135deg, rgba(159, 232, 255, 0.07), transparent 60%),
+    rgba(3, 14, 12, 0.95);
 }
 
 .boon-name {
@@ -601,6 +641,106 @@ canvas {
 .pact-gain {
   font-size: 0.72rem;
   color: var(--system);
+}
+
+/* --- Bordbuch ----------------------------------------------------------- */
+
+.logbook {
+  width: min(34rem, 100%);
+  border: 1px solid var(--hairline);
+  background: rgba(3, 14, 12, 0.7);
+  text-align: left;
+  flex: 0 0 auto;
+}
+
+.logbook > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--system);
+  list-style: none;
+}
+
+.logbook > summary::-webkit-details-marker { display: none; }
+.logbook > summary::before { content: '▸ '; color: var(--chrome); }
+.logbook[open] > summary::before { content: '▾ '; }
+
+.log-summary {
+  color: var(--chrome);
+  letter-spacing: 0.08em;
+}
+
+/* Aufgeklappt scrollt das Feld in sich, damit die Karten darunter erreichbar
+   bleiben — auf einem Telefon sonst der häufigste Layoutfehler. */
+#gameOverScreen .logbook { width: min(26rem, 100%); }
+#gameOverScreen .log-body { max-height: 26vh; }
+
+.log-body {
+  max-height: 34vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 0.8rem 0.7rem;
+}
+
+.log-section { margin-top: 0.6rem; }
+
+.log-section h4 {
+  margin: 0 0 0.25rem;
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--chrome);
+  font-weight: 400;
+}
+
+.log-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  padding: 0.16rem 0;
+  font-size: 0.68rem;
+  line-height: 1.3;
+}
+
+.log-row.is-empty { opacity: 0.4; }
+
+.log-name {
+  color: var(--salvage);
+  font-weight: 700;
+}
+
+.log-meta {
+  color: var(--chrome);
+  font-size: 0.62rem;
+}
+
+.log-dots {
+  color: var(--system);
+  letter-spacing: 0.1em;
+  font-size: 0.6rem;
+}
+
+.log-bar {
+  flex: 1 1 3rem;
+  min-width: 2.5rem;
+  height: 0.3rem;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--hairline);
+  position: relative;
+}
+
+.log-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: var(--fill, 0%);
+  background: var(--tint, var(--system));
 }
 
 /* --- Einstellungen ------------------------------------------------------ */

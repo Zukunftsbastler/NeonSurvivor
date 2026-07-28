@@ -12,6 +12,8 @@
  * dieser Skalierung betroffen.
  */
 
+import { TAG } from './tags.js';
+
 /** Trait-Kennungen. Die Logik dazu liegt in systems/combat.js und entities/. */
 export const TRAIT = {
   /** Jeder n-te Schuss durchschlägt und trifft härter. */
@@ -29,6 +31,7 @@ export const TRAIT = {
 export const WEAPONS = {
   taktgeber: {
     id: 'taktgeber',
+    tags: [TAG.IMPULS], affinity: [],
     name: 'Taktgeber',
     hint: 'Jeder 5. Impuls durchschlägt',
     damage: 1.0, rate: 1.0, speed: 1.0, count: 0, spread: 0.1, life: 1.0, pierce: 1,
@@ -36,6 +39,7 @@ export const WEAPONS = {
   },
   brandungsfaecher: {
     id: 'brandungsfaecher',
+    tags: [TAG.IMPULS], affinity: [TAG.NAHBEREICH],
     name: 'Brandungsfächer',
     hint: 'Dreifach im Nahbereich, mit Rückstoß',
     damage: 0.6, rate: 2.2, speed: 0.8, count: 4, spread: 0.6, life: 0.4, pierce: 1,
@@ -43,6 +47,7 @@ export const WEAPONS = {
   },
   peilstrahl: {
     id: 'peilstrahl',
+    tags: [TAG.IMPULS], affinity: [TAG.FERNBEREICH],
     name: 'Peilstrahl',
     hint: 'Lädt auf, solange du stillstehst',
     damage: 4.0, rate: 3.0, speed: 2.5, count: 0, spread: 0.0, life: 1.5, pierce: 99,
@@ -50,6 +55,7 @@ export const WEAPONS = {
   },
   stoersender: {
     id: 'stoersender',
+    tags: [TAG.IMPULS], affinity: [],
     name: 'Störsender',
     hint: 'Hohe, gleichmäßige Schlagzahl',
     damage: 0.4, rate: 0.2, speed: 1.3, count: 0, spread: 0.4, life: 0.7, pierce: 1,
@@ -57,6 +63,7 @@ export const WEAPONS = {
   },
   echolot: {
     id: 'echolot',
+    tags: [TAG.IMPULS], affinity: [],
     name: 'Echolot',
     hint: 'Projektile kehren zurück',
     damage: 0.8, rate: 1.5, speed: 0.6, count: 2, spread: 0.2, life: 2.0, pierce: 3,
@@ -89,10 +96,10 @@ export const ECHO_TURN_AT = 0.45;
  * Loot-Spiels; die Begriffe kommen jetzt aus der Seefahrt.
  */
 export const EFFECTS = {
-  vereisung: { id: 'vereisung', name: 'Vereisung', color: '#9fe8ff', hint: 'verlangsamt' },
-  korrosion: { id: 'korrosion', name: 'Korrosion', color: '#b6ff5c', hint: 'Schaden über Zeit' },
-  grundmine: { id: 'grundmine', name: 'Grundmine', color: '#ffb000', hint: 'Flächenschaden' },
-  bergung:   { id: 'bergung',   name: 'Bergung',   color: '#ff6b6b', hint: 'Lebensraub' },
+  vereisung: { id: 'vereisung', name: 'Vereisung', color: '#9fe8ff', hint: 'verlangsamt', tag: TAG.KAELTE },
+  korrosion: { id: 'korrosion', name: 'Korrosion', color: '#b6ff5c', hint: 'Schaden über Zeit', tag: TAG.ZERSETZUNG },
+  grundmine: { id: 'grundmine', name: 'Grundmine', color: '#ffb000', hint: 'Flächenschaden', tag: TAG.DRUCKWELLE },
+  bergung:   { id: 'bergung',   name: 'Bergung',   color: '#ff6b6b', hint: 'Lebensraub', tag: TAG.BERGUNG },
 };
 
 /** Wirkdauer in normierten Frames (60 = 1 s bei 60 fps). */

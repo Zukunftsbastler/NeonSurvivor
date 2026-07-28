@@ -14,6 +14,8 @@ import { PALETTE, SWEEP_PERIOD_MS } from '../config/theme.js';
 import { hexToRgba } from './glow.js';
 import { drawParticles, drawPopups, drawSparks } from '../entities/fx.js';
 import { pushCamera, popCamera, drawRings, drawFlashes } from './juice.js';
+import { drawLoadout } from '../systems/loadout.js';
+import { TRAIT_DRAW_BUDGET } from '../config/enemies.js';
 
 let sweepAngle = 0;
 
@@ -121,7 +123,22 @@ export function render() {
   for (const z of world.zones) z.draw(ctx);
   drawParticles(ctx);
   for (const o of world.orbs) o.draw(ctx);
-  for (const e of world.enemies) e.draw(ctx);
+  // Sichtbudget: Bei vielen Kontakten tragen nur die nächstgelegenen ihre
+  // Merkmale — sonst wird der Schirm auf einem Telefon unlesbar.
+  const withTraits = world.enemies.length <= TRAIT_DRAW_BUDGET;
+  if (withTraits) {
+    for (const e of world.enemies) e.draw(ctx, true);
+  } else {
+    const p = world.player;
+    const budget = new Set(
+      [...world.enemies]
+        .sort((a, b) => (a.x - p.x) ** 2 + (a.y - p.y) ** 2 - ((b.x - p.x) ** 2 + (b.y - p.y) ** 2))
+        .slice(0, TRAIT_DRAW_BUDGET),
+    );
+    for (const e of world.enemies) e.draw(ctx, budget.has(e));
+  }
+
+  drawLoadout(ctx);
   for (const b of world.enemyBullets) b.draw(ctx);
   for (const b of world.bullets) b.draw(ctx);
 

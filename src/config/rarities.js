@@ -22,11 +22,16 @@ export const RARITIES = [
 const LUCK_PER_LEVEL = 0.06;
 
 /**
- * Zieht eine Seltenheit. Höhere Stufen profitieren überproportional vom
- * Spielerlevel, die Grundstufe nie — sonst verschöbe sich nur alles gemeinsam.
+ * Zieht eine Seltenheit.
+ *
+ * Höhere Stufen profitieren überproportional von Level und Glück, die
+ * Grundstufe nie — sonst verschöbe sich nur alles gemeinsam nach oben und die
+ * Leiter verlöre ihre Bedeutung.
+ *
+ * `bonusLuck` kommt vom Sturmjäger und addiert sich auf den Levelanteil.
  */
-export function rollRarity(level) {
-  const luck = level * LUCK_PER_LEVEL;
+export function rollRarity(level, bonusLuck = 0) {
+  const luck = level * LUCK_PER_LEVEL + bonusLuck;
 
   let total = 0;
   const weights = RARITIES.map((r) => {

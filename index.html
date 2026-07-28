@@ -35,6 +35,7 @@
             <span>Auswurf <strong id="rerollCount">3</strong></span>
           </div>
           <div id="weaponStrip"></div>
+          <div id="systemStrip"></div>
           <div id="pactStrip"></div>
         </div>
 
@@ -101,6 +102,7 @@
     <!-- Ausrüstung -->
     <section id="levelUpScreen" class="overlay hidden">
       <h2>Neue Ausrüstung</h2>
+      <details class="logbook"></details>
       <div id="cardsContainer"></div>
       <p id="banishHint"></p>
       <div class="card-tools">
@@ -118,6 +120,7 @@
         Die See ist ruhig geworden. Wer mehr will, muss mehr riskieren — jedes Wagnis
         gilt für den Rest der Fahrt.
       </p>
+      <details class="logbook"></details>
       <div id="pactList"></div>
       <button id="pactSkipBtn" class="btn btn--ghost" type="button">Kurs halten</button>
     </section>
@@ -126,6 +129,7 @@
     <section id="pauseScreen" class="overlay overlay--top hidden">
       <h2>Maschine gestoppt</h2>
       <button id="resumeBtn" class="btn btn--primary" type="button">Weiterfahren</button>
+      <details class="logbook"></details>
       <div class="settings-grid"></div>
       <button id="quitBtn" class="btn btn--ghost" type="button">Fahrt abbrechen</button>
     </section>
@@ -141,6 +145,8 @@
         <span>Kontakte<strong id="finalKills">0</strong></span>
         <span>Wagnisse<strong id="finalPacts">0</strong></span>
       </div>
+
+      <details class="logbook" data-ledger="true" open></details>
 
       <ul id="leaderboardList" class="board">
         <li class="board-empty">Noch keine Einträge.</li>

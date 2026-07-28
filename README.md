@@ -42,6 +42,47 @@ erreichen kann:
 | Störsender | hohe, gleichmäßige Schlagzahl ohne Sonderregel |
 | Echolot | Projektile kehren um und treffen auf dem Rückweg erneut |
 
+**Marken und Verstärker.** Jedes Wirkereignis trägt Marken (`impuls`,
+`druckwelle`, `kälte`, `zersetzung`, `manöver`, `geleit`, `zone`, `signal`,
+`nahbereich`, `fernbereich`, `bergung`). Verstärker heben **Marken statt
+einzelner Waffen** — ein „+Druckwelle" hebt Grundmine, Wasserbombe, Seemine und
+Schleppnetz-Nova gleichzeitig, auch die, die du erst später erwirbst.
+
+**Systeme.** Vier Plätze, je bis zu fünf Ausbaustufen. Zum Überleben:
+Lenzpumpe (Regeneration), Wellenbrecher (schluckt einen Treffer), Schotten
+dicht, Nebelwand, Rettungsinsel (einmalig, selten). Zum Angriff: Geleitboot,
+Wasserbombe, Minenleger, Ölspur, Schleppanker, Suchscheinwerfer, Bordflieger,
+Funkfeuer, Prallblech.
+
+**Kopplungen.** Zwölf seltene Karten, die eine Marke in eine andere umleiten —
+etwa *Kielwasserdruck* (jede Durchfahrt löst eine Druckwelle aus) oder
+*Kettenschlag* (große Druckwellen lösen eine zweite aus). Sie sind der Grund,
+warum zwei Fahrten mit denselben Karten unterschiedlich spielen.
+
+**Bordbuch.** Zugeklappte Übersicht auf jedem Auswahlbildschirm: Signalgeber,
+Systeme mit Stufen, Markenbalken, Kopplungen, Wagnisse. Jede Verstärkerkarte
+sagt zusätzlich, auf wie viele deiner Quellen sie wirkt.
+
+**Sturmjäger.** Eine Karte, die die Seltenheitsziehung anhebt — passend zur
+Beaufort-Leiter, auf der höhere Stufen buchstäblich stärkere Winde sind. Eine
+Karte hebt die Ziehung etwa auf das Niveau von Stufe 25.
+
+**Drei Plätze mit Rollen.** Das Angebot zieht Platz 1 aus dem, was du schon
+hast (Vertiefung), Platz 2 aus dem Rest (Breite), Platz 3 frei. Ohne das wäre
+ein Build bei über vierzig Kartentypen nicht mehr entwickelbar.
+
+**Gefechtserfahrung.** Kontakte, die lange auf dem Schirm bleiben, steigen alle
+22 s eine Stufe auf (bis vier): schneller, härter, gepanzerter — sichtbar an
+**Wimpeln**. Sie geben dafür mehr Signalwert. Liegenlassen wird bestraft, aber
+es bleibt eine Versuchung.
+
+**Merkmale.** Kontakte tragen 0–2 Eigenschaften, die gleichzeitig Mechanik und
+Aussehen sind: *Gepanzert* (eckige Klammer, blockt Impuls, nicht Druckwelle),
+*Getaucht* (gestrichelt, nur während des Sweeps voll verwundbar), *Magnetisch*,
+*Verstrahlt*, *Schwer*, *Flink*, *Vereist*, *Gekoppelt* (sichtbare Trosse zum
+Partner). 13 Rümpfe × 8 Merkmale — die Vielfalt entsteht aus der Mechanik,
+nicht aus gezeichneten Vorlagen.
+
 **Statuseffekte und Synergien.** Vereisung, Korrosion, Grundmine und Bergung
 wirken über den Zustand des Ziels, nicht über die Waffe — deshalb lohnt es
 sich, zwei Signalgeber zu kombinieren:
@@ -109,7 +150,7 @@ sind echte Anforderungen, keine Kür.
 ## Technik
 
 Kein Framework, keine Laufzeit-Abhängigkeiten im Browser. Das gebaute Bündel
-liegt bei rund **60 kB JavaScript und 11 kB CSS** (22 kB / 3 kB gzip). Es wird
+liegt bei rund **95 kB JavaScript und 13 kB CSS** (32 kB / 4 kB gzip). Es wird
 **nichts von fremden Servern nachgeladen** — keine Schriftarten, kein CDN.
 
 - **Vite** als Bündler, mehrseitig (Spiel und Impressum)
@@ -128,14 +169,17 @@ src/
     rarities.js          Beaufort-Skala und Ziehgewichte
     weapons.js           Signalgeber, Traits, Statuseffekte, Synergien
     enemies.js           Kontakttypen, Verhalten, Skalierung
-    upgrades.js          Karten und ihre Wirkung
+    upgrades.js          Kartenangebot: Waffen, Werte, Verstärker, Systeme, Kopplungen
+    tags.js              Marken und ihre Bedeutung
+    systems.js           Systeme und ihre Ausbaustufen
+    couplings.js         Kopplungen
     pacts.js             Wagnisse
   core/                world (Leinwand, Listen), state, clock, input, storage, settings
-  entities/            player, enemy, bullet, orb, fx
-  systems/             combat, director, spatial
+  entities/            player, enemy, bullet, orb, allies, fx
+  systems/             damage (zentrale Auflösung), combat, loadout, director, spatial
   audio/               synth (Signalweg), sfx (benannte Klänge)
   render/              renderer (Radarschirm), glow (Sprite-Cache), juice (Wucht)
-  ui/                  hud, cards, screens, settings-panel
+  ui/                  hud, cards, logbook, screens, settings-panel
 netlify/functions/     save-scores, get-scores
 ```
 
@@ -211,7 +255,11 @@ genau das, was die Anwendung tatsächlich tut.
 > werden muss. Das ist Pflichtangabe — bitte vor dem nächsten Deployment
 > ausfüllen und den Kasten entfernen.
 
-## Analyse
+## Konzept und Analyse
+
+[`KONZEPT.md`](KONZEPT.md) beschreibt die Ausbaustufe mit Marken, Systemen,
+Kopplungen und Gefechtserfahrung — inklusive dessen, was die Messung am Entwurf
+geändert hat und was sie *nicht* zeigen konnte.
 
 [`ANALYSE.md`](ANALYSE.md) dokumentiert die Bestandsaufnahme des Prototyps, aus
 der dieser Umbau hervorgegangen ist — inklusive der Rechnungen zu Balancing und

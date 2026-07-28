@@ -8,6 +8,11 @@ import { spawnParticles, spawnLabel } from './fx.js';
 import { acquireBullet } from './bullet.js';
 import { shake, flash, ring, hitStop } from '../render/juice.js';
 import { vibrate } from '../core/settings.js';
+import { noteTaken } from '../systems/ledger.js';
+import { TAG, MAX_AMPLIFICATION } from '../config/tags.js';
+import { MAX_SYSTEM_SLOTS, maxLevelOf } from '../config/systems.js';
+import { api as loadoutApi } from '../systems/loadout.js';
+import { COUPLINGS } from '../config/couplings.js';
 import { sfxShoot, sfxCharged, sfxDash, sfxPlayerHit } from '../audio/sfx.js';
 import {
   WEAPONS, TRAIT,
@@ -15,6 +20,9 @@ import {
   TAKT_INTERVAL, TAKT_BONUS, TAKT_PIERCE,
   PEILUNG_FULL_MS, PEILUNG_MAX_BONUS, PEILUNG_STILL_THRESHOLD,
 } from '../config/weapons.js';
+
+/** Marken je Kopplung — für die Quellenzählung im Bordbuch. */
+const COUPLING_TAGS = Object.fromEntries(COUPLINGS.map((c) => [c.id, c.listens]));
 
 const BASE = {
   maxHp: 100,
@@ -35,7 +43,10 @@ const DASH_IFRAME_MS = 220;
 /** Schutzfenster nach einem Treffer — nötig, seit Kontakte den Aufprall überleben. */
 const HIT_IFRAME_MS = 620;
 
-const NOVA_EVERY = 25;
+// Im Schadensbuch war die Druckwelle mit 45 % die mit Abstand stärkste Quelle
+// der ganzen Fahrt. Seltener und schwächer — sie soll ein Höhepunkt sein,
+// nicht die Hauptwaffe.
+const NOVA_EVERY = 40;
 
 export class Player {
   constructor() {
@@ -63,6 +74,20 @@ export class Player {
     this.lastDashTime = -Infinity;
     this.dashHitList = new Set();
 
+    /** Marken-Verstärkung: Marke -> additiv gestapelter Anteil. */
+    this.amp = Object.create(null);
+    /** Eingebaute Systeme: { def, level, … systemeigener Zustand }. */
+    this.systems = [];
+    /** Erworbene Kopplungen. */
+    this.couplings = new Set();
+
+    /** Sturmjäger: hebt die Chance auf seltene Karten. */
+    this.luck = 0;
+    this.shieldPulse = 0;
+    this.tempHaste = 0;
+    this.tempHasteUntil = 0;
+    this.signalCount = 0;
+
     this.invulnUntil = 0;
     this.stillMs = 0;
     this.moveFraction = 0;
@@ -77,7 +102,92 @@ export class Player {
   }
 
   get fireRate() {
-    return BASE.fireRate / (1 + this.stacks.haste) / state.mods.hasteMult;
+    const temp = clock.now < this.tempHasteUntil ? this.tempHaste : 0;
+    return BASE.fireRate / (1 + this.stacks.haste + temp) / state.mods.hasteMult;
+  }
+
+  /**
+   * Gesamtverstärkung eines Ereignisses.
+   *
+   * Marken multiplizieren sich untereinander — das ist der Grund, warum sich
+   * zwei ausgebaute Zweige gegenseitig tragen. Der Deckel verhindert, dass ein
+   * zweigleisiger Build davonläuft.
+   */
+  amplify(tags) {
+    if (!tags || !tags.length) return 1;
+    let m = 1;
+    for (const t of tags) m *= 1 + (this.amp[t] ?? 0);
+    // Wagnisse mit `ampAll` heben jede Marke. Der Ertrag wächst dadurch mit
+    // dem Build mit, statt eine feste Zahl zu bleiben.
+    return Math.min(MAX_AMPLIFICATION, m * state.mods.ampAll);
+  }
+
+  addAmp(tag, value) {
+    this.amp[tag] = (this.amp[tag] ?? 0) + value;
+  }
+
+  addCoupling(id) {
+    this.couplings.add(id);
+  }
+
+  systemLevel(id) {
+    return this.systems.find((s) => s.def.id === id)?.level ?? 0;
+  }
+
+  findSystem(id) {
+    return this.systems.find((s) => s.def.id === id) ?? null;
+  }
+
+  /**
+   * Baut ein System ein oder aus.
+   *
+   * `grant` kommt aus der Seltenheit der Karte. Vorher hatte die Seltenheit
+   * bei Systemkarten überhaupt keine Wirkung — eine „Sturm"-Systemkarte war
+   * exakt dasselbe wie eine aus Windstille. Jetzt bringt sie mehrere Stufen
+   * auf einmal, und der Sturmjäger zahlt auch auf Systeme ein.
+   */
+  addSystem(def, grant = 1) {
+    const cap = maxLevelOf(def);
+    const existing = this.findSystem(def.id);
+
+    if (existing) {
+      if (existing.level >= cap) return;
+      existing.level = Math.min(cap, existing.level + grant);
+      def.onLevel?.(this, existing, loadoutApi);
+      return;
+    }
+
+    if (this.systems.length >= MAX_SYSTEM_SLOTS) return;
+
+    // Ein frisch eingebautes System läuft nicht auf Stufe 1 an: Bei vier
+    // Plätzen à fünf Stufen wären sonst zwanzig Karten nötig, um die Systeme
+    // überhaupt auszufahren — mehr, als eine Fahrt hergibt.
+    const slot = { def, level: Math.min(cap, 1 + grant) };
+    this.systems.push(slot);
+    def.onAcquire?.(this, slot, loadoutApi);
+    def.onLevel?.(this, slot, loadoutApi);
+  }
+
+  /**
+   * Wie viele Quellen an Bord diese Marke erzeugen. Steht auf den Karten
+   * („wirkt auf 3 deiner Quellen") und macht Synergie ohne Handbuch sichtbar.
+   */
+  tagSources(tag) {
+    let n = 0;
+    for (const w of this.weapons) {
+      if (w.tags?.includes(tag) || w.affinity?.includes(tag)) n++;
+    }
+    for (const s of this.systems) {
+      if (s.def.tags?.includes(tag)) n++;
+    }
+    for (const id of this.couplings) {
+      const c = COUPLING_TAGS[id];
+      if (c && c.includes(tag)) n++;
+    }
+    // Notmanöver und Schleppnetz sind eigene Quellen, ohne Karte zu sein.
+    if (tag === TAG.MANOEVER) n++;
+    if (tag === TAG.SIGNAL && this.stacks.magnet > 0) n++;
+    return n;
   }
 
   get dashCooldown() {
@@ -95,7 +205,10 @@ export class Player {
   }
 
   get aimRange() {
-    return 800 * state.mods.aimRange;
+    // Ein Funkstörer in der Nähe drückt die Erfassung — deshalb lohnt es sich,
+    // ihn zuerst zu nehmen.
+    const jam = world.jammed > 0 ? 0.45 : 1;
+    return 800 * state.mods.aimRange * jam;
   }
 
   /**
@@ -149,6 +262,7 @@ export class Player {
   addSpeed(v) { this.stacks.speed += v; }
   addMagnet(v) { this.stacks.magnet += v; }
   addDash(v) { this.stacks.dash += v; }
+  addLuck(v) { this.luck += v; }
 
   addHull(v) {
     this.stacks.hull += 1;
@@ -307,6 +421,8 @@ export class Player {
           effect: w.effect,
           trait: w.trait,
           charged,
+          tags: w.tags ?? [TAG.IMPULS],
+          sourceName: w.name,
         }),
       );
     }
@@ -334,11 +450,29 @@ export class Player {
     return false;
   }
 
-  takeDamage(amount) {
+  takeDamage(amount, source = 'Kontakt') {
     if (this.invulnerable) return false;
+
+    // Wellenbrecher schluckt den Treffer vollständig, bevor irgendetwas
+    // anderes greift — sonst wäre die Schadensminderung darauf verschwendet.
+    const shield = this.findSystem('wellenbrecher');
+    if (shield && shield.def.absorb(this, shield)) {
+      this.invulnUntil = clock.now + HIT_IFRAME_MS;
+      this.shieldPulse = 1;
+      spawnParticles(this.x, this.y, 12, '#9fe8ff', 1.6);
+      spawnLabel(this.x, this.y - 22, 'ABGEWEHRT', '#9fe8ff');
+      vibrate(14);
+      return false;
+    }
+
+    const schotten = this.findSystem('schotten');
+    if (schotten) amount *= schotten.def.mitigate(this, schotten);
 
     this.hp -= amount;
     this.invulnUntil = clock.now + HIT_IFRAME_MS;
+    noteTaken(source, amount);
+
+    for (const slot of this.systems) slot.def.onPlayerHit?.(this, slot, loadoutApi);
 
     state.combo = 1;
     state.lastHitAt = state.elapsedTime;
@@ -355,7 +489,21 @@ export class Player {
     sfxPlayerHit();
     vibrate(28);
 
-    return this.hp <= 0;
+    if (this.hp > 0) return false;
+
+    // Rettungsinsel: einmal pro Fahrt geht es weiter statt unterzugehen.
+    const raft = this.systems.find((sl) => sl.def.id === 'rettungsinsel' && !sl.used);
+    if (raft) {
+      raft.used = true;
+      this.hp = this.maxHp * 0.35;
+      this.invulnUntil = clock.now + 3000;
+      spawnLabel(this.x, this.y - 34, 'RETTUNGSINSEL', PALETTE.system);
+      spawnParticles(this.x, this.y, 26, PALETTE.system, 2.2);
+      vibrate([40, 60, 40]);
+      return false;
+    }
+
+    return true;
   }
 
   heal(amount) {
@@ -432,8 +580,15 @@ export class Player {
  * kamen — genau der Punkt, an dem das Spiel aufhörte, Entscheidungen zu
  * verlangen. Jetzt werden Stufen seltener, hören aber nie auf.
  */
+/**
+ * Steilheit der Aufstiegskurve. Kleiner = schnellere Stufen, mehr Karten
+ * je Fahrt. Der Wert ist die zentrale Stellschraube dafür, wie tief ein Build
+ * innerhalb einer Fahrt überhaupt wachsen kann.
+ */
+export const XP_CURVE = 18;
+
 export function xpForLevel(level) {
-  return Math.floor(70 + level * level * 42);
+  return Math.floor(70 + level * level * XP_CURVE);
 }
 
 export function findTarget(x, y, maxRange) {

@@ -21,7 +21,7 @@ let el = null;
 let lastUpdate = 0;
 const shown = {
   hp: -1, xp: -1, level: -1, score: -1, time: -1,
-  dash: null, rerolls: -1, pacts: -1, weapons: '',
+  dash: null, rerolls: -1, pacts: -1, weapons: '', systems: '',
 };
 
 export function initHud() {
@@ -37,6 +37,7 @@ export function initHud() {
     rerolls: document.getElementById('rerollCount'),
     pacts: document.getElementById('pactStrip'),
     weapons: document.getElementById('weaponStrip'),
+    systems: document.getElementById('systemStrip'),
   };
 }
 
@@ -113,6 +114,14 @@ export function updateHud(force = false) {
       .join('');
   }
 
+  const sysSig = p.systems.map((s) => `${s.def.id}${s.level}`).join('|');
+  if (sysSig !== shown.systems) {
+    shown.systems = sysSig;
+    el.systems.innerHTML = p.systems
+      .map((s) => `<span class="system-chip">${s.def.name} ${s.level}</span>`)
+      .join('');
+  }
+
   const sig = p.weapons.map((w) => w.name).join('|');
   if (sig !== shown.weapons) {
     shown.weapons = sig;
@@ -147,5 +156,5 @@ export function resetHudCache() {
   lastUpdate = 0;
   shown.hp = -1; shown.xp = -1; shown.level = -1; shown.score = -1;
   shown.time = -1; shown.dash = null; shown.rerolls = -1;
-  shown.pacts = -1; shown.weapons = '';
+  shown.pacts = -1; shown.weapons = ''; shown.systems = '';
 }

@@ -9,7 +9,7 @@
 import { world } from '../core/world.js';
 import { state } from '../core/state.js';
 import { clock } from '../core/clock.js';
-import { Enemy } from '../entities/enemy.js';
+import { Enemy, pairCoupled } from '../entities/enemy.js';
 import { ENEMY_TYPES } from '../config/enemies.js';
 
 const MAX_ENEMIES = 110;
@@ -63,7 +63,9 @@ export function updateDirector(ts) {
   if (spawnTimer > 0) return;
 
   if (world.enemies.length < MAX_ENEMIES) {
-    world.enemies.push(new Enemy(pickType(minutes)));
+    const spawned = new Enemy(pickType(minutes));
+    world.enemies.push(spawned);
+    if (spawned.hasTrait('gekoppelt')) pairCoupled(world.enemies);
   }
 
   const rate = state.difficultyMultiplier * state.mods.spawnRate;

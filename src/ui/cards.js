@@ -14,6 +14,7 @@ import { ring, flash, shake } from '../render/juice.js';
 import { vibrate } from '../core/settings.js';
 import { spawnParticles } from '../entities/fx.js';
 import { sfxCardSelect, sfxBanish, sfxReroll, sfxUiTick, sfxPact } from '../audio/sfx.js';
+import { refreshLogbook } from './logbook.js';
 
 let cardsEl, levelUpEl, rerollBtn, banishHintEl, pactEl, pactListEl, pactSkipBtn;
 let currentCards = [];
@@ -37,7 +38,7 @@ export function initCards() {
     if (state.rerolls <= 0) return;
     state.rerolls--;
     sfxReroll();
-    currentCards = generateUpgradeCards(world.player.level, state.banished);
+    currentCards = generateUpgradeCards(world.player, state.banished);
     renderCards();
   });
 
@@ -70,19 +71,23 @@ function renderCards() {
     if (banishMode) node.classList.add('is-banishing');
     node.setAttribute('style', rarityStyle(card.rarity));
 
+    node.classList.add(`kind-${card.kind}`);
     node.innerHTML = `
-      <span class="boon-rarity">${card.rarity.name}</span>
-      <span class="boon-name">${card.type.name}</span>
+      <span class="boon-head">
+        <span class="boon-kind">${card.kindLabel ?? ''}</span>
+        <span class="boon-rarity">${card.rarity.name}</span>
+      </span>
+      <span class="boon-name">${card.name}</span>
       <span class="boon-value">${card.desc}</span>
       <span class="boon-detail">${card.detail ?? ''}</span>
     `;
 
     node.addEventListener('click', () => {
       if (banishMode) {
-        state.banished.add(card.type.id);
+        state.banished.add(card.id);
         banishMode = false;
         sfxBanish();
-        currentCards = generateUpgradeCards(world.player.level, state.banished);
+        currentCards = generateUpgradeCards(world.player, state.banished);
         renderCards();
         return;
       }
@@ -93,7 +98,7 @@ function renderCards() {
       // Wirkung sofort, Optik danach: Die Karte quittiert die Wahl, die
       // übrigen treten zurück. Ohne diesen Moment fühlt sich eine Entscheidung
       // wie ein Menüklick an statt wie eine Errungenschaft.
-      card.type.apply(world.player, card.value);
+      card.apply(world.player);
       sfxCardSelect();
       vibrate(14);
 
@@ -123,7 +128,8 @@ function renderCards() {
 export function showLevelUp(onDone) {
   onChosen = onDone;
   banishMode = false;
-  currentCards = generateUpgradeCards(world.player.level, state.banished);
+  refreshLogbook();
+  currentCards = generateUpgradeCards(world.player, state.banished);
   renderCards();
   levelUpEl.classList.remove('hidden');
 }
@@ -141,6 +147,7 @@ export function showPactOffer(onDone) {
     return;
   }
 
+  refreshLogbook();
   const offer = [...available].sort(() => 0.5 - Math.random()).slice(0, 3);
   pactListEl.innerHTML = '';
 
