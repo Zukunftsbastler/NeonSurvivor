@@ -1,21 +1,19 @@
 /**
- * Bestenliste und lokale Ablage.
+ * Lokale Bestenliste und lokale Ablage.
  *
- * Datenschutz: Die Übertragung an die Bestenliste geschieht NUR auf
- * ausdrückliche Aktion des Spielers (Einwilligung nach Art. 6 Abs. 1 lit. a
- * DSGVO). Im Prototyp wurde der Score beim Tod automatisch verschickt — das
- * ließ sich nicht sauber begründen.
+ * Datenschutz: Alles bleibt im lokalen Speicher des Browsers. Es gibt keine
+ * globale Bestenliste und keinen Server mehr; nichts verlässt das Gerät.
  *
  * Der lokale Speicher hält ausschließlich Funktionsdaten (zuletzt genutztes
- * Rufzeichen, lokale Bestwerte). Sie verlassen das Gerät nie von selbst.
+ * Rufzeichen, lokale Bestwerte).
  */
 
 const LOCAL_SCORES = 'seegang_lokale_bestwerte';
 const LOCAL_NAME = 'seegang_rufzeichen';
 
-function isLocalEnvironment() {
-  return window.location.protocol === 'file:' || window.location.hostname === 'localhost';
-}
+/** So viele Fahrten werden aufbewahrt; angezeigt werden die besten zehn. */
+const KEEP_ENTRIES = 50;
+const TOP_N = 10;
 
 export function readLocal(key, fallback) {
   try {
@@ -50,66 +48,37 @@ export function sanitizeName(raw) {
   return name || 'ANON';
 }
 
-/**
- * Trägt einen Wert ein. Gibt `{ ok, error }` zurück, damit die Oberfläche
- * Rückmeldung geben kann statt still zu scheitern.
- */
-export async function submitScore(name, score, durationMs) {
-  const clean = sanitizeName(name);
-  const value = Math.floor(score);
+/** Gespeicherte Fahrten, bereinigt und absteigend sortiert. */
+function readScores() {
+  const raw = readLocal(LOCAL_SCORES, []);
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((e) => e && Number.isFinite(e.score))
+    .map((e) => ({ name: sanitizeName(e.name), score: Math.floor(e.score), ts: Number(e.ts) || 0 }))
+    .sort((a, b) => b.score - a.score);
+}
 
-  if (!Number.isFinite(value) || value < 0 || value > 5_000_000) {
-    return { ok: false, error: 'Ungültiger Punktestand.' };
-  }
-
-  if (isLocalEnvironment()) {
-    const scores = readLocal(LOCAL_SCORES, []);
-    scores.push({ name: clean, score: value, ts: Date.now() });
-    writeLocal(LOCAL_SCORES, scores.sort((a, b) => b.score - a.score).slice(0, 50));
-    return { ok: true, local: true };
-  }
-
-  try {
-    const res = await fetch('/.netlify/functions/save-scores', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: clean, score: value, durationMs: Math.floor(durationMs) }),
-    });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      return { ok: false, error: text || `Serverfehler ${res.status}` };
-    }
-    return { ok: true };
-  } catch {
-    return { ok: false, error: 'Keine Verbindung zur Bestenliste.' };
-  }
+/** Die besten zehn Fahrten auf diesem Gerät. */
+export function loadLeaderboard() {
+  return readScores().slice(0, TOP_N);
 }
 
 /**
- * Liefert `{ disabled, entries }`.
- *
- * `disabled` meldet, dass serverseitig keine Bestenliste angebunden ist. Die
- * Oberfläche blendet dann Liste und Eintragsknopf aus, statt einen Knopf
- * anzubieten, der sicher fehlschlägt.
+ * Trägt eine beendete Fahrt in die lokale Bestenliste ein.
+ * Gibt die besten zehn zurück, dazu den Platz dieser Fahrt (1-basiert) und
+ * ihren Zeitstempel, über den die Oberfläche die Zeile hervorheben kann.
  */
-export async function fetchLeaderboard() {
-  if (isLocalEnvironment()) {
-    return {
-      disabled: false,
-      entries: readLocal(LOCAL_SCORES, []).sort((a, b) => b.score - a.score).slice(0, 10),
-    };
+export function recordScore(name, score) {
+  const value = Math.floor(score);
+  if (!Number.isFinite(value) || value < 0) {
+    return { entries: loadLeaderboard(), rank: null, ts: null };
   }
 
-  try {
-    const res = await fetch('/.netlify/functions/get-scores');
-    if (!res.ok) return { disabled: true, entries: [] };
-    const data = await res.json();
+  const entry = { name: sanitizeName(name), score: value, ts: Date.now() };
+  // Bei Gleichstand steht die ältere Fahrt vorn.
+  const scores = [...readScores(), entry].sort((a, b) => b.score - a.score || a.ts - b.ts);
+  const rank = scores.indexOf(entry) + 1;
+  writeLocal(LOCAL_SCORES, scores.slice(0, KEEP_ENTRIES));
 
-    // Ältere Auslieferungen antworteten mit einem nackten Array.
-    if (Array.isArray(data)) return { disabled: false, entries: data };
-    return { disabled: !!data.disabled, entries: Array.isArray(data.entries) ? data.entries : [] };
-  } catch {
-    return { disabled: true, entries: [] };
-  }
+  return { entries: scores.slice(0, TOP_N), rank, ts: entry.ts };
 }

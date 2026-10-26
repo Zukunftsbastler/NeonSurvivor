@@ -877,6 +877,10 @@ canvas {
   color: var(--system);
 }
 
+.board-row.is-current {
+  background: rgba(95, 143, 124, 0.18);
+}
+
 .board-rank {
   color: var(--chrome);
   font-variant-numeric: tabular-nums;
@@ -900,16 +904,9 @@ canvas {
   color: var(--chrome);
 }
 
-.submit-row {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-#submitNote {
-  font-size: 0.65rem;
-  color: var(--chrome);
+.board-note {
+  font-size: 0.72rem;
+  color: var(--system);
   min-height: 1rem;
 }
 

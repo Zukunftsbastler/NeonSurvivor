@@ -1,13 +1,12 @@
 /**
  * Start-, Pausen- und Abschlussbildschirm.
  *
- * Die Übertragung an die Bestenliste ist bewusst OPT-IN: Sie geschieht erst,
- * wenn der Spieler sie ausdrücklich auslöst. Im Prototyp lief sie beim Tod
- * automatisch mit, was sich datenschutzrechtlich nicht sauber begründen ließ.
+ * Die Bestenliste ist lokal: Jede beendete Fahrt wird im Browser dieses
+ * Geräts eingetragen. Übertragen wird nichts.
  */
 
 import { state, SCREEN } from '../core/state.js';
-import { fetchLeaderboard, submitScore, sanitizeName, loadNickname, saveNickname } from '../core/storage.js';
+import { recordScore, sanitizeName, loadNickname, saveNickname } from '../core/storage.js';
 
 let el = null;
 let onStart = null;
@@ -30,9 +29,6 @@ export function initScreens(handlers) {
     finalKills: document.getElementById('finalKills'),
     finalPacts: document.getElementById('finalPacts'),
     board: document.getElementById('leaderboardList'),
-    submitBtn: document.getElementById('submitScoreBtn'),
-    submitNote: document.getElementById('submitNote'),
-    submitRow: document.getElementById('submitRow'),
     boardNote: document.getElementById('boardNote'),
   };
 
@@ -66,7 +62,6 @@ export function initScreens(handlers) {
     el.start.classList.remove('hidden');
   });
 
-  el.submitBtn.addEventListener('click', handleSubmit);
 }
 
 export function showPause() {
@@ -84,50 +79,32 @@ export function isPauseVisible() {
   return el && !el.pause.classList.contains('hidden');
 }
 
-async function handleSubmit() {
-  el.submitBtn.disabled = true;
-  el.submitNote.textContent = 'Wird übertragen …';
-
-  const duration = performance.now() - state.runStartedAt;
-  const result = await submitScore(state.nickname, state.score, duration);
-
-  if (result.ok) {
-    el.submitNote.textContent = result.local
-      ? 'Lokal gespeichert (Testbetrieb).'
-      : 'Eingetragen. Danke!';
-    await renderLeaderboard();
-  } else {
-    el.submitNote.textContent = result.error ?? 'Übertragung fehlgeschlagen.';
-    el.submitBtn.disabled = false;
-  }
-}
-
-async function renderLeaderboard() {
-  el.board.innerHTML = '<li class="board-empty">Lade Daten …</li>';
-  const { disabled, entries } = await fetchLeaderboard();
-
-  // Ist keine Datenbank angebunden, verschwindet der ganze Block. Ein
-  // Eintragsknopf, der garantiert fehlschlägt, wäre schlechter als keiner.
-  el.submitRow.classList.toggle('hidden', disabled);
-  el.board.classList.toggle('hidden', disabled);
-  el.boardNote.classList.toggle('hidden', !disabled);
-  if (disabled) return;
-
+function renderLeaderboard(entries, currentTs) {
   if (!entries.length) {
     el.board.innerHTML = '<li class="board-empty">Noch keine Einträge.</li>';
     return;
   }
 
   el.board.innerHTML = entries
-    .map(
-      (entry, i) => `
-        <li class="board-row${i === 0 ? ' is-first' : ''}">
+    .map((entry, i) => {
+      const classes = ['board-row'];
+      if (i === 0) classes.push('is-first');
+      if (entry.ts === currentTs) classes.push('is-current');
+      return `
+        <li class="${classes.join(' ')}">
           <span class="board-rank">${String(i + 1).padStart(2, '0')}</span>
           <span class="board-name">${escapeHtml(entry.name)}</span>
           <span class="board-score">${Number(entry.score).toLocaleString('de-DE')}</span>
-        </li>`,
-    )
+        </li>`;
+    })
     .join('');
+}
+
+function rankNote(rank, total) {
+  if (!rank) return '';
+  if (rank === 1) return total > 1 ? 'Neuer Rekord auf diesem Gerät!' : 'Deine erste Fahrt auf diesem Gerät.';
+  if (rank <= 10) return `Platz ${rank} auf diesem Gerät.`;
+  return 'Diesmal nicht unter den besten zehn.';
 }
 
 function escapeHtml(value) {
@@ -136,7 +113,7 @@ function escapeHtml(value) {
   })[c]);
 }
 
-export async function showGameOver(stats) {
+export function showGameOver(stats) {
   el.over.classList.remove('hidden');
   el.finalScore.textContent = Math.floor(state.score).toLocaleString('de-DE');
   el.finalTime.textContent = stats.time;
@@ -144,8 +121,7 @@ export async function showGameOver(stats) {
   el.finalKills.textContent = String(stats.kills);
   el.finalPacts.textContent = String(state.activePacts.length);
 
-  el.submitBtn.disabled = false;
-  el.submitNote.textContent = '';
-
-  await renderLeaderboard();
+  const { entries, rank, ts } = recordScore(state.nickname, state.score);
+  renderLeaderboard(entries, ts);
+  el.boardNote.textContent = rankNote(rank, entries.length);
 }

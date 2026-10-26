@@ -156,7 +156,7 @@ liegt bei rund **95 kB JavaScript und 13 kB CSS** (32 kB / 4 kB gzip). Es wird
 - **Vite** als Bündler, mehrseitig (Spiel und Impressum)
 - **Canvas 2D**, Leuchten über vorgerenderte Sprites statt `shadowBlur`
 - **Web Audio**, vollständig synthetisiert — keine Audiodateien
-- **ioredis** ausschließlich in den Netlify-Funktionen, nie im Browser
+- **localStorage** für Rufzeichen und die lokale Bestenliste — kein Server, keine Datenbank
 
 ### Aufbau
 
@@ -180,7 +180,6 @@ src/
   audio/               synth (Signalweg), sfx (benannte Klänge)
   render/              renderer (Radarschirm), glow (Sprite-Cache), juice (Wucht)
   ui/                  hud, cards, logbook, screens, settings-panel
-netlify/functions/     save-scores, get-scores
 ```
 
 Wer am Balancing dreht, kommt mit `src/config/` aus. Wer die Optik ändern will,
@@ -193,8 +192,8 @@ Zwei getrennte Uhren:
 - `clock.now` (`core/clock.js`) ist die **Spielzeit**. Sie steht bei Pause still
   und wird von der Slow-Motion-Rampe gedehnt. Alles, was Spielverhalten steuert
   — Feuerpausen, Cooldowns, Schutzfenster, Wellensteuerung — liest sie.
-- `performance.now()` bleibt der Wanduhr vorbehalten, etwa der Fahrtdauer für
-  die Bestenliste.
+- `performance.now()` bleibt der Wanduhr vorbehalten, etwa der Slow-Motion-Rampe
+  und der Treffer-Wucht.
 
 Sämtliche Bewegung skaliert mit der tatsächlich verstrichenen Zeit. Das Spiel
 läuft auf 30, 60, 120 und 144 Hz gleich schnell — nachgemessen liegt die
@@ -205,55 +204,22 @@ Projektilstrecke über 30 bis 240 Hz innerhalb von 0,2 %.
 Netlify, konfiguriert in `netlify.toml`:
 
 - Build `npm run build`, Verzeichnis `dist`
-- Funktionen aus `netlify/functions`
+- keine Funktionen, keine Umgebungsvariablen — reine statische Seite
 - Content-Security-Policy erlaubt ausschließlich eigene Quellen
 - gehashte Assets dauerhaft im Cache, HTML nie
 
-### Umgebungsvariablen
-
-| Variable | Zweck |
-|---|---|
-| `REDIS_URL` | Verbindung zur Bestenliste — **nicht gesetzt = abgeschaltet** |
-| `RATE_SALT` | Salz für die IP-Hashes des Rate-Limits (empfohlen) |
-
-**Die Bestenliste ist derzeit abgeschaltet**, weil keine Datenbank angebunden
-ist. Ohne `REDIS_URL` meldet `get-scores` `{ disabled: true }`, der
-Abschlussbildschirm blendet Liste und Eintragsknopf aus und zeigt stattdessen
-einen Hinweis, und `save-scores` nimmt gar nichts entgegen.
-
-Zum Wiedereinschalten genügt es, `REDIS_URL` in den Netlify-Umgebungsvariablen
-zu setzen — keine Codeänderung, kein neuer Build nötig.
-
-> **Dann aber zwingend zuerst:** Abschnitt 4 und 5 der Datenschutzerklärung in
-> [`impressum.html`](impressum.html) wieder mit Anbieter, Firmensitz,
-> Serverstandort und Speicherdauer füllen. Sie beschreiben aktuell den
-> abgeschalteten Zustand.
-
-Lokal (`localhost` oder `file:`) wird ohnehin nur im Browser gespeichert, die
-Bestenliste funktioniert dort also unabhängig davon.
-
 ### Bestenliste
 
-Der Eintrag ist **freiwillig** und geschieht erst auf ausdrückliche Aktion.
-Serverseitig wird geprüft:
-
-- Punktestand gegen die gemeldete Fahrtdauer plausibilisiert
-- höchstens 10 Einträge pro Minute und IP (die IP wird nur als kurzlebiger
-  Hash verwendet, nie gespeichert)
-- die Liste wird auf 100 Einträge getrimmt
-
-Ein reines Client-Spiel lässt sich nie vollständig gegen Manipulation sichern.
-Die Prüfungen heben die Hürde deutlich, ohne gutes Spiel zu bestrafen.
+Die Bestenliste ist **lokal**: Jede beendete Fahrt wird automatisch im
+`localStorage` des Browsers eingetragen (Schlüssel `seegang_lokale_bestwerte`,
+die besten 50 werden aufbewahrt, die besten zehn angezeigt). Der
+Abschlussbildschirm hebt die aktuelle Fahrt hervor und nennt ihren Platz.
+Es gibt keine globale Bestenliste und nichts wird übertragen.
 
 ## Rechtliches
 
 `impressum.html` enthält Impressum und Datenschutzerklärung und beschreibt
 genau das, was die Anwendung tatsächlich tut.
-
-> **Offen:** Im Abschnitt zur Bestenliste steht ein markierter Kasten, in den
-> der tatsächliche Redis-Anbieter samt Sitz und Serverstandort eingetragen
-> werden muss. Das ist Pflichtangabe — bitte vor dem nächsten Deployment
-> ausfüllen und den Kasten entfernen.
 
 ## Konzept und Analyse
 

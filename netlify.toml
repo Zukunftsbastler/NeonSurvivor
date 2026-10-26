@@ -1,7 +1,6 @@
 [build]
   command = "npm run build"
   publish = "dist"
-  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
@@ -26,6 +25,6 @@
     Referrer-Policy = "no-referrer"
     X-Frame-Options = "SAMEORIGIN"
     Permissions-Policy = "geolocation=(), camera=(), microphone=(), interest-cohort=()"
-    # Das Spiel lädt nichts von fremden Hosts. Die Richtlinie hält das fest,
-    # damit es auch so bleibt.
-    Content-Security-Policy = "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; font-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; object-src 'none'"
+    # Das Spiel lädt nichts von fremden Hosts und baut keine Verbindungen auf
+    # (die Bestenliste ist lokal). Die Richtlinie hält das fest, damit es so bleibt.
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'none'; font-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; object-src 'none'"

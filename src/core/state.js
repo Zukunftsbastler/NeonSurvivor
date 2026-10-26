@@ -38,9 +38,6 @@ export const state = {
   mods: baseModifiers(),
   lastPactOfferS: 0,
   lastHitAt: 0,
-
-  /** Reine Statistik für den Abschlussbildschirm. */
-  runStartedAt: 0,
 };
 
 export function resetState(nickname) {
@@ -66,8 +63,6 @@ export function resetState(nickname) {
   state.mods = baseModifiers();
   state.lastPactOfferS = 0;
   state.lastHitAt = 0;
-
-  state.runStartedAt = performance.now();
 }
 
 export function recomputeMods() {

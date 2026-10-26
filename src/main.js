@@ -306,7 +306,7 @@ async function endRun() {
   refreshLogbook();
 
   const total = Math.floor(state.elapsedTime);
-  await showGameOver({
+  showGameOver({
     time: `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`,
     level: world.player.level,
     kills: state.enemiesKilledTotal,

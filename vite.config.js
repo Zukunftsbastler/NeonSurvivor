@@ -22,7 +22,8 @@ export default defineConfig({
     },
   },
   server: {
-    host: true,
+    // Nur localhost. Zum Testen auf dem Handy gezielt `npx vite --host` starten,
+    // statt den Dev-Server dauerhaft im ganzen Netz anzubieten.
     port: 5173,
   },
 });

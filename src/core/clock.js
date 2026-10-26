@@ -8,8 +8,8 @@
  * eingefrorene Welt. Bei häufigen Level-Ups war das ein spürbarer Exploit.
  *
  * Alles, was Spielverhalten steuert (Feuerpausen, Cooldowns, Schutzfenster),
- * liest `clock.now`. Nur echte Wanduhr-Werte wie die Fahrtdauer für die
- * Bestenliste benutzen weiterhin `performance.now()`.
+ * liest `clock.now`. Nur echte Wanduhr-Werte wie die Slow-Motion-Rampe oder
+ * die Treffer-Wucht benutzen weiterhin `performance.now()`.
  */
 
 export const clock = { now: 0 };
